@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RFT-SIRM — Interactive Verification Matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #070710;
+  --bg-primary: #0c0c1a;
+  --bg-secondary: #121225;
+  --bg-card: rgba(18, 18, 37, 0.85);
+  --bg-glass: rgba(18, 18, 37, 0.6);
+  --text-primary: #f0f0ff;
+  --text-secondary: #a0a0c8;
+  --text-muted: #606080;
+  --cyan: #00e5ff;
+  --cyan-glow: rgba(0, 229, 255, 0.3);
+  --blue: #4488ff;
+  --green: #00e676;
+  --green-glow: rgba(0, 230, 118, 0.3);
+  --amber: #ffab40;
+  --amber-glow: rgba(255, 171, 64, 0.3);
+  --red: #ff5252;
+  --red-glow: rgba(255, 82, 82, 0.3);
+  --violet: #e040fb;
+  --violet-glow: rgba(224, 64, 251, 0.3);
+  --pink: #ff4081;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ambient background */
+.ambient-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0, 229, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(224, 64, 251, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 50% at 50% 100%, rgba(0, 230, 118, 0.02) 0%, transparent 50%);
+}
+
+/* Grid overlay */
+.grid-overlay {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);
+}
+
+/* Floating particles */
+.particles {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+}
+.particle {
+  position: absolute; border-radius: 50%;
+  animation: floatParticle linear infinite;
+}
+@keyframes floatParticle {
+  0% { transform: translateY(100vh) scale(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* Header */
+header {
+  position: relative; z-index: 10;
+  padding: 2rem 3rem;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(7,7,16,0.9) 0%, transparent 100%);
+}
+.logo {
+  font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;
+  color: var(--text-primary); text-decoration: none;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.logo::before {
+  content: ''; width: 10px; height: 10px;
+  background: var(--cyan); border-radius: 2px;
+  box-shadow: 0 0 12px var(--cyan);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a {
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500;
+  color: var(--text-secondary); text-decoration: none;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  transition: color 0.3s ease;
+}
+.nav-links a:hover { color: var(--cyan); }
+
+/* Main content */
+main { position: relative; z-index: 10; padding: 3rem; }
+
+/* Hero section */
+.hero-section {
+  text-align: center; margin-bottom: 4rem;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  border-radius: 100px;
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--cyan); letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+.hero-badge::before {
+  content: ''; width: 6px; height: 6px;
+  background: var(--cyan); border-radius: 50%;
+  box-shadow: 0 0 8px var(--cyan);
+  animation: pulse 2s ease-in-out infinite;
+}
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800;
+  line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 1rem;
+  background: linear-gradient(135deg, #fff 0%, #a0a0ff 40%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-subtitle {
+  font-size: 1.1rem; color: var(--text-secondary);
+  max-width: 700px; margin: 0 auto; line-height: 1.7;
+}
+
+/* Matrix container */
+.matrix-container {
+  max-width: 1400px; margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+/* Matrix header */
+.matrix-header {
+  display: grid;
+  grid-template-columns: 200px repeat(6, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+}
+.matrix-header-cell {
+  background: var(--bg-secondary);
+  padding: 1.2rem 0.8rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.matrix-header-cell:first-child {
+  text-align: left; padding-left: 1.5rem;
+  color: var(--text-secondary);
+}
+
+/* Matrix rows */
+.matrix-row {
+  display: grid;
+  grid-template-columns: 200px repeat(6, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+  transition: all 0.3s ease;
+}
+.matrix-row:hover {
+  background: rgba(0, 229, 255, 0.03);
+}
+.matrix-row.system-row {
+  cursor: pointer;
+}
+
+/* System name cell */
+.system-cell {
+  background: var(--bg-primary);
+  padding: 1.2rem 1.5rem;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 0.3rem;
+}
+.system-name {
+  font-family: var(--font-mono); font-size: 0.85rem;
+  font-weight: 600; color: var(--text-primary);
+}
+.system-desc {
+  font-size: 0.7rem; color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Verification cell */
+.verif-cell {
+  background: var(--bg-primary);
+  padding: 1.2rem 0.8rem;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.verif-cell::before {
+  content: ''; position: absolute; inset: 0;
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.verif-cell:hover::before { opacity: 1; }
+.verif-cell:hover {
+  transform: scale(1.02);
+  z-index: 5;
+}
+
+.verif-cell.active {
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid var(--cyan);
+}
+
+/* Status indicators */
+.status-icon {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+.verif-cell:hover .status-icon {
+  transform: scale(1.2);
+  box-shadow: 0 0 20px currentColor;
+}
+
+.status-active {
+  background: rgba(0, 230, 118, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+.status-planned {
+  background: rgba(255, 171, 64, 0.15);
+  color: var(--amber);
+  border: 1px solid rgba(255, 171, 64, 0.3);
+}
+.status-missing {
+  background: rgba(255, 82, 82, 0.1);
+  color: var(--red);
+  border: 1px solid rgba(255, 82, 82, 0.2);
+}
+.status-na {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.verif-label {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  font-weight: 500; letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Detail panel */
+.detail-panel {
+  display: none;
+  grid-column: 1 / -1;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-top: 1px solid var(--border-subtle);
+  padding: 2rem 2.5rem;
+  animation: slideDown 0.4s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.detail-panel.active { display: block; }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+.detail-left h3 {
+  font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+.detail-left .detail-system {
+  font-family: var(--font-mono); font-size: 0.8rem;
+  color: var(--cyan); margin-bottom: 1.5rem;
+}
+.detail-left p {
+  color: var(--text-secondary); line-height: 1.8;
+  margin-bottom: 1rem; font-size: 0.95rem;
+}
+
+.detail-meta {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  margin-top: 1.5rem;
+}
+.meta-tag {
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-family: var(--font-mono); font-size: 0.7rem;
+  font-weight: 500; letter-spacing: 0.05em;
+}
+.meta-tag.cyan {
+  background: rgba(0, 229, 255, 0.08);
+  color: var(--cyan); border: 1px solid rgba(0, 229, 255, 0.15);
+}
+.meta-tag.green {
+  background: rgba(0, 230, 118, 0.08);
+  color: var(--green); border: 1px solid rgba(0, 230, 118, 0.15);
+}
+.meta-tag.amber {
+  background: rgba(255, 171, 64, 0.08);
+  color: var(--amber); border: 1px solid rgba(255, 171, 64, 0.15);
+}
+
+.detail-right {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.detail-right h4 {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-muted); margin-bottom: 1rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.evidence-list {
+  list-style: none; display: flex; flex-direction: column; gap: 0.8rem;
+}
+.evidence-list li {
+  display: flex; align-items: center; gap: 0.8rem;
+  font-size: 0.85rem; color: var(--text-secondary);
+}
+.evidence-list li::before {
+  content: '→'; color: var(--cyan); font-family: var(--font-mono);
+}
+.evidence-list a {
+  color: var(--cyan); text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+.evidence-list a:hover {
+  border-bottom-color: var(--cyan);
+}
+
+/* Terminal block */
+.terminal-block {
+  background: #080810;
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  border-radius: 10px;
+  padding: 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin-top: 1rem;
+}
+.terminal-block .cmd { color: var(--green); }
+.terminal-block .out { color: var(--text-muted); }
+.terminal-block .num { color: var(--amber); }
+.terminal-block .ok { color: var(--green); }
+
+/* Legend */
+.legend {
+  display: flex; justify-content: center; gap: 2rem;
+  margin-top: 2rem; flex-wrap: wrap;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.8rem; color: var(--text-secondary);
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+
+/* Footer */
+footer {
+  position: relative; z-index: 10;
+  padding: 2rem 3rem;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .matrix-header, .matrix-row { grid-template-columns: 150px repeat(6, 1fr); }
+  .system-cell { padding: 1rem; }
+  .detail-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  main { padding: 1.5rem; }
+  .matrix-header, .matrix-row {
+    grid-template-columns: 120px repeat(3, 1fr);
+  }
+  .matrix-header-cell:nth-child(n+5),
+  .verif-cell:nth-child(n+5) { display: none; }
+  .nav-links { display: none; }
+}
+
+/* Scanlines */
+.scanlines {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9000;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px
+  );
+}
+</style>
+</head>
+<body>
+<div class="ambient-bg"></div>
+<div class="grid-overlay"></div>
+<div class="scanlines"></div>
+<div class="particles" id="particles"></div>
+
+<header>
+  <a href="index.html" class="logo"><span>RFT-SIRM</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html#evidence">Evidence</a></li>
+    <li><a href="index.html#cases">Cases</a></li>
+    <li><a href="https://github.com/RFT-SIRM" target="_blank">GitHub</a></li>
+  </ul>
+</header>
+
+<main>
+  <section class="hero-section">
+    <div class="hero-badge">Interactive Console</div>
+    <h1 class="hero-title">Verification Matrix</h1>
+    <p class="hero-subtitle">
+      Click any cell to trace evidence from claim to reproducible result.
+      Every verification method mapped to every system in the RFT-SIRM ecosystem.
+    </p>
+  </section>
+
+  <div class="matrix-container">
+    <div class="matrix-header">
+      <div class="matrix-header-cell">System</div>
+      <div class="matrix-header-cell">Static Analysis</div>
+      <div class="matrix-header-cell">Engineering Tests</div>
+      <div class="matrix-header-cell">Stateful Fuzzing</div>
+      <div class="matrix-header-cell">Differential Validation</div>
+      <div class="matrix-header-cell">Model Verification</div>
+      <div class="matrix-header-cell">Formal Proof</div>
+    </div>
+
+    <!-- Rift L1 -->
+    <div class="matrix-row system-row" data-system="rift-l1">
+      <div class="system-cell">
+        <div class="system-name">Rift L1 Core</div>
+        <div class="system-desc">In-memory state machine</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Clippy + Miri</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">15+ / component</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">1T+ ops</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Rust ↔ Python</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="planned">
+        <div class="status-icon status-planned">◯</div>
+        <div class="verif-label">TLA+ / Coq</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-rift-l1">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>Rift L1 Blockchain Core</h3>
+          <div class="detail-system">Deterministic state machine with SIRM invariants I1–I4</div>
+          <p>
+            Standalone validator core enforcing supply conservation, mint/burn accounting,
+            dust bound, and debt limit across every state transition. O(1) distribution
+            via global_field scalar. Checked arithmetic throughout.
+          </p>
+          <p>
+            <strong>Key result:</strong> 1 trillion+ operations fuzzed with zero invariant
+            violations. Seed-reproducible. CI-integrated (5h 55m per run, ~5.75M ops/sec).
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">Rust</span>
+            <span class="meta-tag green">libFuzzer</span>
+            <span class="meta-tag amber">In-memory only</span>
+          </div>
+          <div class="terminal-block">
+<span class="cmd">$</span> cargo test --lib<br>
+<span class="cmd">$</span> ./target/release/fuzz_integrated --seconds 300 --threads 4<br>
+<span class="out">[  60s]</span> cases=<span class="num">345M</span>  ops=<span class="num">1.38T</span>  ops/sec=<span class="num">5.75M</span><br>
+<span class="out">[ 120s]</span> cases=<span class="num">690M</span>  ops=<span class="num">2.76T</span>  ops/sec=<span class="num">5.75M</span><br>
+<span class="out">[ 300s]</span> cases=<span class="num">1.73B</span>  ops=<span class="num">6.92T</span>  ops/sec=<span class="num">5.75M</span><br>
+<span class="ok">DONE.</span> Total ops: <span class="num">6,920,000,000,000+</span>  Violations: <span class="ok">0</span>  Crashes: <span class="ok">0</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence & Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank">Repository → Rift-L1-Blockchain</a></li>
+            <li><a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain/actions" target="_blank">CI Pipeline → GitHub Actions</a></li>
+            <li>Invariant definitions: I1–I4 (Supply, Mint/Burn, Dust, Debt)</li>
+            <li>Differential validation: Python reference model vs Rust impl</li>
+            <li>5 stratified fuzz modes: positive, negative, boundary, churn, mixed</li>
+            <li>Limitation: No p2p / consensus layer tested</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABIv2 -->
+    <div class="matrix-row system-row" data-system="abiv2">
+      <div class="system-cell">
+        <div class="system-name">ABIv2 Memory</div>
+        <div class="system-desc">Agave SVM contexts</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Clippy</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Mock SVM</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">4.29B+ exec</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Per-frame rollback</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-abiv2">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>ABIv2 Memory Contexts</h3>
+          <div class="detail-system">Per-frame writable permission rollback for Agave SVM</div>
+          <p>
+            Research into writable permission leakage during nested CPI calls under
+            Agave SVM ABIv2. Dynamic region count calculation with per-frame rollback.
+          </p>
+          <p>
+            <strong>Key result:</strong> 4.29 billion+ executions. 1 PoC-only bug documented.
+            Upstream uses abi_v2_prepare_for_instruction architecture (svm#25 closed).
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">Rust</span>
+            <span class="meta-tag green">libFuzzer</span>
+            <span class="meta-tag amber">Research artifact</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence & Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/agave-abiv2-memory-contexts" target="_blank">Repository → agave-abiv2-memory-contexts</a></li>
+            <li><a href="https://github.com/anza-xyz/agave/issues/25" target="_blank">Upstream Issue → svm#25</a></li>
+            <li>Focus: Per-frame writable permission rollback</li>
+            <li>Finding: 1 PoC-only bug (not merged)</li>
+            <li>Limitation: Research artifact, not production patch</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agave Scheduler -->
+    <div class="matrix-row system-row" data-system="scheduler">
+      <div class="system-cell">
+        <div class="system-name">Agave Scheduler</div>
+        <div class="system-desc">Conflict-aware scheduling</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Clippy</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Unit + Integration</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">91M exec/run</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Conflict graph</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-scheduler">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>Agave Conflict-Aware Scheduler</h3>
+          <div class="detail-system">Hotspot heat map + generation aging for banking_stage</div>
+          <p>
+            Addresses unbounded deferral latency under sustained account-level write
+            contention. Conflict-graph scheduler with bounded retry semantics and
+            generation-based aging.
+          </p>
+          <p>
+            <strong>Key result:</strong> 91M executions per run, ~4,300 exec/sec.
+            RFC published (agave#14274). Not a production patch — research artifact.
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">Rust</span>
+            <span class="meta-tag green">libFuzzer</span>
+            <span class="meta-tag amber">Standalone</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence & Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/agave-rift-scheduler" target="_blank">Repository → agave-rift-scheduler</a></li>
+            <li><a href="https://github.com/anza-xyz/agave/issues/14274" target="_blank">Upstream RFC → agave#14274</a></li>
+            <li>Invariants: Accounting, Monotonicity, Pass Counter, Deferred Drain</li>
+            <li>Coverage: ~2,661 features, ~436 corpus entries</li>
+            <li>Limitation: Not integrated into Agave validator</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aave V4 -->
+    <div class="matrix-row system-row" data-system="aave">
+      <div class="system-cell">
+        <div class="system-name">Aave V4 Hub</div>
+        <div class="system-desc">DeFi model review</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Python lint</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Seeded tests</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">184K ops</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Model ↔ Spec</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Python state machine</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-aave">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>Aave V4 Hub Model Review</h3>
+          <div class="detail-system">Deterministic Python state machine simulating draw/restore/deficit</div>
+          <p>
+            Model-level review of Aave V4 Hub invariant system. RAY = 10²⁷ fixed-point
+            arithmetic with explicit rounding modes. Boundary matrix B-1…B-5.
+          </p>
+          <p>
+            <strong>Key result:</strong> 184,000 operations, 0 invariant violations.
+            R-01 dust events (expected rounding). R-02 liquidity checks passed.
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">Python</span>
+            <span class="meta-tag green">Seeded fuzz</span>
+            <span class="meta-tag amber">Model-level only</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence & Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank">Repository → aave-v4-hub-model-review</a></li>
+            <li><a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review/blob/main/MEMO.md" target="_blank">Memo → MEMO.md</a></li>
+            <li>Scope: draw, restore, reportDeficit, eliminateDeficit</li>
+            <li>Precision: RAY arithmetic, explicit rounding</li>
+            <li>Limitation: Model-level, not bytecode audit</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- seL4 -->
+    <div class="matrix-row system-row" data-system="sel4">
+      <div class="system-cell">
+        <div class="system-name">seL4 CDT</div>
+        <div class="system-desc">Kernel validation</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">C lint</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">123/123 tests</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">1B+ ops</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">seL4 proof</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-sel4">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>seL4 CDT Complementary Verification</h3>
+          <div class="detail-system">Independent engineering validation of formally verified microkernel</div>
+          <p>
+            Deterministic state-machine fuzzing of seL4 Capability Derivation Tree.
+            Complementary to the existing formal proof — not a replacement.
+          </p>
+          <p>
+            <strong>Key result:</strong> 1 billion+ operations, 0 kernel crashes.
+            123/123 post-marathon tests passed. Independent confirmation of formal proof.
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">C / seL4</span>
+            <span class="meta-tag green">Deterministic fuzz</span>
+            <span class="meta-tag green">Formal proof exists</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence & Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank">Repository → UltraCore-RFT</a></li>
+            <li>Target: Capability Derivation Tree (CDT)</li>
+            <li>Method: Deterministic replay with seed-generated ops</li>
+            <li>Result: 0 crashes, 123/123 tests passed</li>
+            <li>Limitation: Complementary, not replacement of formal proof</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rift Network -->
+    <div class="matrix-row system-row" data-system="network">
+      <div class="system-cell">
+        <div class="system-name">Rift Network</div>
+        <div class="system-desc">Solana on-chain protocol</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Anchor lint</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Anchor tests</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">2.5B+ runs</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Model validation</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">SIRM on-chain</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-network">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>Rift Network — Solana Protocol</h3>
+          <div class="detail-system">Anchor + SPL implementation with SIRM invariants</div>
+          <p>
+            On-chain protocol implementing SIRM economic invariants on Solana.
+            Independent security audit completed with 14 findings, all addressed.
+            RC v1.0 status.
+          </p>
+          <p>
+            <strong>Key result:</strong> 2.5 billion+ fuzz runs. 14 audit findings fixed.
+            All invariants enforced at contract level.
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">Rust / Anchor</span>
+            <span class="meta-tag green">Security audited</span>
+            <span class="meta-tag amber">RC v1.0</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence & Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank">Repository → UltraCore-RFT</a></li>
+            <li>Framework: Anchor + SPL on Solana</li>
+            <li>Audit: Independent security review, 14 findings</li>
+            <li>Status: All findings addressed, RC v1.0</li>
+            <li>Limitation: Audit report under NDA; summary only public</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--green);box-shadow:0 0 8px var(--green);"></div>
+      <span>Active / Validated</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber);"></div>
+      <span>Planned / In Progress</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--red);box-shadow:0 0 8px var(--red);"></div>
+      <span>Missing / Failed</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--text-muted);"></div>
+      <span>Not Applicable</span>
+    </div>
+  </div>
+</main>
+
+<footer>
+  RFT-SIRM Research Laboratory — Deterministic Invariant Systems —
+  <a href="index.html" style="color:var(--cyan);text-decoration:none;">rft-sirm.github.io</a>
+</footer>
+
+<script>
+// Generate floating particles
+const particlesContainer = document.getElementById('particles');
+const colors = ['#00e5ff', '#e040fb', '#00e676', '#ffab40'];
+for (let i = 0; i < 30; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+  p.style.background = colors[Math.floor(Math.random() * colors.length)];
+  p.style.opacity = 0.3 + Math.random() * 0.4;
+  p.style.animationDuration = (15 + Math.random() * 25) + 's';
+  p.style.animationDelay = (Math.random() * 20) + 's';
+  particlesContainer.appendChild(p);
+}
+
+// Matrix interaction
+let activePanel = null;
+
+document.querySelectorAll('.system-row').forEach(row => {
+  row.addEventListener('click', function(e) {
+    const system = this.getAttribute('data-system');
+    const panel = document.getElementById('detail-' + system);
+
+    // Close previous
+    if (activePanel && activePanel !== panel) {
+      activePanel.classList.remove('active');
+    }
+
+    // Toggle current
+    if (panel.classList.contains('active')) {
+      panel.classList.remove('active');
+      activePanel = null;
+      this.querySelectorAll('.verif-cell').forEach(c => c.classList.remove('active'));
+    } else {
+      panel.classList.add('active');
+      activePanel = panel;
+      // Highlight row cells
+      document.querySelectorAll('.system-row .verif-cell').forEach(c => c.classList.remove('active'));
+      this.querySelectorAll('.verif-cell').forEach(c => c.classList.add('active'));
+    }
+
+    // Scroll to panel
+    if (activePanel) {
+      setTimeout(() => {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  });
+});
+
+// Individual cell click
+document.querySelectorAll('.verif-cell').forEach(cell => {
+  cell.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const row = this.closest('.system-row');
+    const system = row.getAttribute('data-system');
+    const panel = document.getElementById('detail-' + system);
+
+    if (activePanel && activePanel !== panel) {
+      activePanel.classList.remove('active');
+    }
+
+    panel.classList.add('active');
+    activePanel = panel;
+
+    document.querySelectorAll('.system-row .verif-cell').forEach(c => c.classList.remove('active'));
+    row.querySelectorAll('.verif-cell').forEach(c => c.classList.add('active'));
+
+    setTimeout(() => {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  });
+});
+</script>
+</body>
+</html>
