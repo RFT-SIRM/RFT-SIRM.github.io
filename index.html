@@ -7,25 +7,33 @@
 <meta name="description" content="Public research platform for verifiable state transition architectures. Every claim traced from model to evidence.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 <style>
 :root {
-  --bg-primary: #0c0c18;
-  --bg-secondary: #141428;
-  --bg-tertiary: #1a1a35;
-  --bg-card: rgba(20, 20, 45, 0.65);
+  --bg-deep: #020208;
+  --bg-primary: #060610;
+  --bg-secondary: #0c0c1a;
+  --bg-card: rgba(12, 12, 26, 0.82);
+  --bg-glass: rgba(12, 12, 26, 0.45);
   --text-primary: #f0f0ff;
-  --text-secondary: #b8b8d8;
-  --text-muted: #8080a8;
-  --accent-cyan: #00e5ff;
-  --accent-blue: #4488ff;
-  --accent-green: #00e676;
-  --accent-red: #ff5252;
-  --accent-orange: #ffab40;
-  --accent-purple: #e040fb;
-  --accent-pink: #ff4081;
-  --glow-cyan: rgba(0, 229, 255, 0.25);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.18);
+  --text-secondary: #a0a0c8;
+  --text-muted: #505070;
+  --cyan: #00f0ff;
+  --cyan-dim: rgba(0, 240, 255, 0.12);
+  --blue: #4488ff;
+  --green: #00ff88;
+  --green-dim: rgba(0, 255, 136, 0.12);
+  --amber: #ffaa00;
+  --amber-dim: rgba(255, 170, 0, 0.12);
+  --red: #ff4444;
+  --red-dim: rgba(255, 68, 68, 0.12);
+  --violet: #c040ff;
+  --violet-dim: rgba(192, 64, 255, 0.12);
+  --pink: #ff4080;
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-hover: rgba(255, 255, 255, 0.1);
   --font-mono: 'JetBrains Mono', monospace;
   --font-sans: 'Inter', sans-serif;
 }
@@ -33,1165 +41,807 @@
 html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-sans);
-  background: var(--bg-primary);
+  background: var(--bg-deep);
   color: var(--text-primary);
   overflow-x: hidden;
   min-height: 100vh;
-  cursor: none;
 }
-.cursor-dot {
+
+/* ===== WEBGL CANVAS ===== */
+#webgl-canvas {
   position: fixed; top: 0; left: 0;
-  width: 8px; height: 8px;
-  background: var(--accent-cyan);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 10000;
-  mix-blend-mode: screen;
-  box-shadow: 0 0 12px var(--accent-cyan), 0 0 24px var(--accent-cyan);
-  transition: transform 0.08s ease;
+  width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
 }
-.cursor-ring {
-  position: fixed; top: 0; left: 0;
-  width: 40px; height: 40px;
-  border: 1.5px solid rgba(0, 229, 255, 0.4);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9999;
-  transition: transform 0.15s ease, width 0.2s ease, height 0.2s ease;
-}
-.cursor-ring.hover {
-  width: 60px; height: 60px;
-  border-color: rgba(0, 229, 255, 0.7);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
-}
+
+/* ===== SCANLINES ===== */
 .scanlines {
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 9000;
+  position: fixed; inset: 0; pointer-events: none; z-index: 2;
   background: repeating-linear-gradient(
     0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
   );
 }
-.noise {
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 8999;
+
+/* ===== NOISE OVERLAY ===== */
+.noise-overlay {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
   opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }
-#matrix-canvas, #particle-canvas {
-  position: fixed; inset: 0;
-  pointer-events: none;
+
+/* ===== VIGNETTE ===== */
+.vignette {
+  position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 0%, rgba(2,2,8,0.6) 100%);
 }
-#matrix-canvas { z-index: 1; opacity: 0.45; }
-#particle-canvas { z-index: 2; opacity: 0.70; }
-.parallax-grid {
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 0;
-  opacity: 0.03;
-  background-image: 
-    linear-gradient(rgba(0, 229, 255, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.3) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
+
+/* ===== NAVIGATION ===== */
 nav {
-  position: fixed; top: 0; left: 0; right: 0;
-  z-index: 1000;
-  padding: 1rem 2.5rem;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  padding: 1.2rem 3rem;
   display: flex; justify-content: space-between; align-items: center;
-  background: rgba(12, 12, 24, 0.75);
-  backdrop-filter: blur(20px) saturate(1.2);
+  background: rgba(2, 2, 8, 0.7);
+  backdrop-filter: blur(30px) saturate(1.3);
   border-bottom: 1px solid var(--border-subtle);
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 nav.scrolled {
-  padding: 0.6rem 2.5rem;
-  background: rgba(12, 12, 24, 0.92);
+  padding: 0.7rem 3rem;
+  background: rgba(2, 2, 8, 0.92);
+  border-bottom-color: rgba(0, 240, 255, 0.08);
 }
 .nav-logo {
-  font-family: var(--font-mono);
-  font-size: 1.1rem; font-weight: 700;
-  color: var(--text-primary);
-  text-decoration: none;
-  letter-spacing: -0.02em;
-  display: flex; align-items: center; gap: 0.6rem;
-  cursor: none;
+  font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700;
+  color: var(--text-primary); text-decoration: none;
+  display: flex; align-items: center; gap: 0.7rem;
+  position: relative;
 }
 .nav-logo::before {
-  content: '';
-  width: 10px; height: 10px;
-  background: var(--accent-cyan);
-  border-radius: 2px;
-  box-shadow: 0 0 12px var(--accent-cyan);
-  animation: pulse 2s ease-in-out infinite;
+  content: ''; width: 10px; height: 10px;
+  background: var(--cyan); border-radius: 2px;
+  box-shadow: 0 0 15px var(--cyan), 0 0 30px rgba(0,240,255,0.3);
+  animation: pulseNav 2.5s ease-in-out infinite;
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
+@keyframes pulseNav {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 15px var(--cyan), 0 0 30px rgba(0,240,255,0.3); }
+  50% { opacity: 0.6; transform: scale(0.8); box-shadow: 0 0 8px var(--cyan), 0 0 15px rgba(0,240,255,0.15); }
 }
-.nav-links {
-  display: flex; gap: 1.8rem;
-  list-style: none;
-}
+.nav-links { display: flex; gap: 2.2rem; list-style: none; }
 .nav-links a {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-decoration: none;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  position: relative;
-  padding: 0.3rem 0;
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500;
+  color: var(--text-secondary); text-decoration: none;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  position: relative; padding: 0.4rem 0;
   transition: color 0.3s ease;
-  cursor: none;
 }
 .nav-links a::after {
-  content: '';
-  position: absolute; bottom: -2px; left: 0;
-  width: 0; height: 2px;
-  background: var(--accent-cyan);
-  box-shadow: 0 0 8px var(--accent-cyan);
-  transition: width 0.3s ease;
+  content: ''; position: absolute; bottom: -2px; left: 50%;
+  width: 0; height: 2px; background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
 }
 .nav-links a:hover, .nav-links a.active {
-  color: var(--accent-cyan);
+  color: var(--cyan);
+  text-shadow: 0 0 20px rgba(0,240,255,0.4);
 }
 .nav-links a:hover::after, .nav-links a.active::after {
   width: 100%;
 }
+
+/* ===== AUDIO TOGGLE ===== */
+.audio-toggle {
+  position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 1000;
+  width: 44px; height: 44px;
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(15px);
+}
+.audio-toggle:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0,240,255,0.15);
+}
+.audio-toggle.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0,240,255,0.2);
+  animation: pulseNav 2s ease-in-out infinite;
+}
+
+/* ===== HERO ===== */
 .hero {
-  position: relative;
-  min-height: 100vh;
+  position: relative; min-height: 100vh;
   display: flex; flex-direction: column;
   justify-content: center; align-items: center;
-  text-align: center;
-  padding: 8rem 2rem 4rem;
-  z-index: 10;
+  text-align: center; padding: 10rem 2rem 5rem; z-index: 10;
+  perspective: 1000px;
 }
 .hero-badge {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.4rem 1rem;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 1.2rem;
+  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(192,64,255,0.08));
+  border: 1px solid rgba(0, 240, 255, 0.15);
   border-radius: 100px;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--accent-cyan);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 2rem;
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--cyan); letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 2.5rem;
   backdrop-filter: blur(10px);
+  animation: badgeFloat 3s ease-in-out infinite;
+}
+@keyframes badgeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 .hero-badge::before {
-  content: '';
-  width: 6px; height: 6px;
-  background: var(--accent-cyan);
-  border-radius: 50%;
-  box-shadow: 0 0 8px var(--accent-cyan);
-  animation: pulse 2s ease-in-out infinite;
+  content: ''; width: 6px; height: 6px;
+  background: var(--cyan); border-radius: 50%;
+  box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0,240,255,0.3);
+  animation: pulseNav 2s ease-in-out infinite;
 }
 .hero h1 {
-  font-size: clamp(2.5rem, 6vw, 5rem);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  margin-bottom: 1.5rem;
-  max-width: 900px;
+  font-size: clamp(2.8rem, 7vw, 6rem); font-weight: 900;
+  line-height: 1.05; letter-spacing: -0.04em;
+  margin-bottom: 1.5rem; max-width: 1000px;
 }
 .hero h1 .line1 {
   display: block;
-  background: linear-gradient(135deg, #fff 0%, #a0a0ff 50%, var(--accent-cyan) 100%);
+  background: linear-gradient(135deg, #fff 0%, #c0c0ff 30%, var(--cyan) 60%, var(--violet) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 40px rgba(0,240,255,0.15));
+}
+.hero h1 .line2 {
+  display: block; font-size: 0.5em; font-weight: 300;
+  color: var(--text-secondary); margin-top: 0.4em; letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+}
+.hero-subtitle {
+  font-size: clamp(1rem, 2.2vw, 1.3rem);
+  color: var(--text-secondary); max-width: 680px;
+  line-height: 1.8; margin-bottom: 3.5rem;
+}
+
+/* ===== PIPELINE ===== */
+.pipeline-container {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem;
+  margin-bottom: 2rem;
+  transform-style: preserve-3d;
+}
+.pipe-step {
+  padding: 0.7rem 1.4rem;
+  background: var(--bg-card);
+  border: 1.5px solid;
+  border-radius: 10px;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  font-weight: 600; cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative; overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+.pipe-step::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.03), transparent);
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.pipe-step:hover::before { opacity: 1; }
+.pipe-step:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 30px currentColor;
+}
+.pipe-arrow {
+  color: var(--text-muted); align-self: center; font-size: 1.2rem;
+  animation: arrowPulse 2s ease-in-out infinite;
+}
+@keyframes arrowPulse {
+  0%, 100% { opacity: 0.3; transform: translateX(0); }
+  50% { opacity: 0.8; transform: translateX(3px); }
+}
+#pipeline-detail {
+  min-height: 100px; padding: 1.8rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px; max-width: 750px;
+  margin: 0 auto 3rem; text-align: left;
+  font-size: 0.88rem; color: var(--text-secondary);
+  line-height: 1.8; backdrop-filter: blur(20px);
+  transition: all 0.4s ease;
+}
+#pipeline-detail:hover {
+  border-color: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 40px rgba(0,240,255,0.05);
+}
+
+/* ===== MATRIX LINK ===== */
+.matrix-link {
+  display: inline-flex; align-items: center; gap: 0.8rem;
+  padding: 1.1rem 2.2rem;
+  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(192,64,255,0.1));
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 14px;
+  color: var(--text-primary); text-decoration: none;
+  font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 2rem;
+  position: relative; overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+.matrix-link::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,240,255,0.05), rgba(192,64,255,0.05));
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.matrix-link:hover::before { opacity: 1; }
+.matrix-link:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 0 50px rgba(0,240,255,0.12), 0 0 100px rgba(192,64,255,0.08);
+  border-color: var(--cyan);
+}
+.matrix-link::after {
+  content: '→'; transition: transform 0.3s ease;
+  display: inline-block;
+}
+.matrix-link:hover::after {
+  transform: translateX(6px);
+}
+
+/* ===== SECTIONS ===== */
+.section { position: relative; padding: 8rem 2rem; z-index: 10; }
+.container { max-width: 1200px; margin: 0 auto; }
+.section-header { text-align: center; margin-bottom: 5rem; }
+.section-label {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 1.2rem;
+  display: inline-block; padding: 0.4rem 1rem;
+  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(192,64,255,0.08));
+  border: 1px solid rgba(0, 240, 255, 0.1);
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+}
+.section-title {
+  font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800;
+  letter-spacing: -0.03em; margin-bottom: 1.2rem; line-height: 1.15;
+  background: linear-gradient(135deg, #fff 0%, #c0c0ff 50%, var(--cyan) 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.hero h1 .line2 {
-  display: block;
-  font-size: 0.55em;
-  font-weight: 300;
-  color: var(--text-secondary);
-  margin-top: 0.3em;
-  letter-spacing: 0.02em;
-}
-.hero-subtitle {
-  font-size: clamp(1rem, 2vw, 1.25rem);
-  color: var(--text-secondary);
-  max-width: 640px;
-  line-height: 1.7;
-  margin-bottom: 3rem;
-}
-.pipeline-container {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;
-  margin-bottom: 2rem;
-}
-.pipe-step {
-  padding: 0.6rem 1.2rem;
-  background: rgba(20, 20, 45, 0.8);
-  border: 1.5px solid;
-  border-radius: 8px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-.pipe-step:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(0,0,0,0.3);
-}
-.pipe-arrow {
-  color: var(--text-muted);
-  align-self: center;
-  font-size: 1.1rem;
-}
-#pipeline-detail {
-  min-height: 100px;
-  padding: 1.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  max-width: 700px;
-  margin: 0 auto 3rem;
-  text-align: left;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.7;
-  backdrop-filter: blur(20px);
-}
-.section {
-  position: relative;
-  padding: 6rem 2rem;
-  z-index: 10;
-}
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.section-header {
-  text-align: center;
-  margin-bottom: 4rem;
-}
-.section-label {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--accent-cyan);
-  margin-bottom: 1rem;
-  display: inline-block;
-  padding: 0.3rem 0.9rem;
-  background: rgba(0, 229, 255, 0.06);
-  border: 1px solid rgba(0, 229, 255, 0.12);
-  border-radius: 4px;
-}
-.section-title {
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 1rem;
-  line-height: 1.2;
-}
 .section-desc {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.7;
+  font-size: 1.15rem; color: var(--text-secondary);
+  max-width: 650px; margin: 0 auto; line-height: 1.8;
 }
-.sirm-flow {
-  display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
-  max-width: 500px; margin: 0 auto;
-}
-.sirm-node {
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  text-align: center;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 300px;
-  position: relative;
-}
-.sirm-node:hover {
-  transform: scale(1.03);
-  box-shadow: 0 0 30px rgba(0,0,0,0.4);
-}
-.sirm-arrow {
-  color: var(--text-muted);
-  font-size: 1.4rem;
-}
-.sirm-branch {
-  display: flex; gap: 2rem;
-  margin-top: 0.3rem;
-}
-#sirm-detail {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  max-width: 700px;
-  margin-left: auto; margin-right: auto;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  min-height: 60px;
-  backdrop-filter: blur(20px);
-}
+
+/* ===== CARDS ===== */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.8rem;
 }
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 2rem;
-  backdrop-filter: blur(20px) saturate(1.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  border-radius: 20px; padding: 2.2rem;
+  backdrop-filter: blur(25px) saturate(1.2);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative; overflow: hidden;
 }
 .card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0;
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+  opacity: 0; transition: opacity 0.5s ease;
+}
+.card::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 60% at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0,240,255,0.04), transparent);
+  opacity: 0; transition: opacity 0.4s ease;
+  pointer-events: none;
 }
 .card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-4px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 240, 255, 0.12);
+  transform: translateY(-6px);
+  box-shadow: 0 25px 80px rgba(0,0,0,0.5), 0 0 50px rgba(0,240,255,0.06);
 }
-.card:hover::before {
-  opacity: 1;
-}
+.card:hover::before { opacity: 1; }
+.card:hover::after { opacity: 1; }
 .card-icon {
-  width: 48px; height: 48px;
-  border-radius: 12px;
+  width: 52px; height: 52px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.4rem;
-  margin-bottom: 1.2rem;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.15);
-}
-.card h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 0.6rem;
-  letter-spacing: -0.01em;
-}
-.card p {
-  font-size: 0.92rem;
-  color: var(--text-secondary);
-  line-height: 1.7;
-}
-.card .card-meta {
-  margin-top: 1.2rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-}
-.inv-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 2rem;
-  cursor: pointer;
+  font-size: 1.5rem; margin-bottom: 1.4rem;
+  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(192,64,255,0.1));
+  border: 1px solid rgba(0, 240, 255, 0.12);
   transition: all 0.4s ease;
-  position: relative;
-  overflow: hidden;
 }
-.inv-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-  opacity: 0; transition: opacity 0.4s ease;
+.card:hover .card-icon {
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 0 25px rgba(0,240,255,0.15);
 }
-.inv-card:hover::before { opacity: 1; }
-.inv-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-4px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(0,229,255,0.08);
-}
-.inv-detail {
-  display: none;
-  margin-top: 1rem;
-  padding-top: 1rem;
+.card h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.7rem; }
+.card p { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.8; }
+.card .card-meta {
+  margin-top: 1.5rem; padding-top: 1.5rem;
   border-top: 1px solid var(--border-subtle);
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.8;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--text-muted); letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 0.8rem;
 }
-.inv-detail strong { color: var(--text-secondary); }
-.inv-detail code { color: var(--accent-cyan); font-family: var(--font-mono); }
-.inv-detail a { color: var(--accent-blue); text-decoration: none; }
-.status-badge {
-  font-size: 0.65rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+
+/* ===== EVIDENCE CARDS ===== */
 .evidence-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.8rem;
 }
 .evidence-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 1.8rem;
-  transition: all 0.4s ease;
-  backdrop-filter: blur(20px);
+  border-radius: 20px; padding: 2rem;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(25px);
+  position: relative; overflow: hidden;
 }
+.evidence-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 60% at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0,240,255,0.03), transparent);
+  opacity: 0; transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.evidence-card:hover::after { opacity: 1; }
 .evidence-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-4px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(0,229,255,0.08);
+  border-color: rgba(0, 240, 255, 0.12);
+  transform: translateY(-6px);
+  box-shadow: 0 25px 80px rgba(0,0,0,0.5), 0 0 50px rgba(0,240,255,0.05);
 }
 .evidence-header {
   display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 .evidence-value {
-  font-family: var(--font-mono);
-  font-size: 2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  font-family: var(--font-mono); font-size: 2.4rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--blue), var(--violet));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1;
 }
-.evidence-meta {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  line-height: 1.8;
-}
+.evidence-meta { font-size: 0.82rem; color: var(--text-muted); line-height: 1.9; }
 .evidence-meta strong { color: var(--text-secondary); }
-.evidence-actions {
-  margin-top: 1rem;
-  display: flex; gap: 0.5rem; flex-wrap: wrap;
+.evidence-actions { margin-top: 1.2rem; display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.evidence-actions a {
+  font-size: 0.72rem; padding: 0.35rem 0.8rem; border-radius: 6px;
+  font-family: var(--font-mono); text-decoration: none;
+  transition: all 0.3s ease; display: inline-block;
 }
-.evidence-actions span {
-  font-size: 0.7rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 4px;
-  cursor: pointer;
+.evidence-actions a.cyan {
+  background: rgba(0, 240, 255, 0.08); color: var(--cyan);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+}
+.evidence-actions a.cyan:hover {
+  background: rgba(0, 240, 255, 0.15);
+  box-shadow: 0 0 15px rgba(0,240,255,0.1);
+}
+.evidence-actions a.blue {
+  background: rgba(68, 136, 255, 0.06); color: var(--blue);
+  border: 1px solid rgba(68, 136, 255, 0.12);
+}
+.evidence-actions a.blue:hover {
+  background: rgba(68, 136, 255, 0.12);
+  box-shadow: 0 0 15px rgba(68,136,255,0.1);
+}
+
+/* ===== STATUS BADGES ===== */
+.status-badge {
+  font-size: 0.65rem; padding: 0.25rem 0.7rem;
+  border-radius: 6px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
   font-family: var(--font-mono);
-  transition: all 0.3s ease;
 }
+.status-validated {
+  background: var(--green-dim); color: var(--green);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  box-shadow: 0 0 10px rgba(0,255,136,0.05);
+}
+.status-experimental {
+  background: var(--amber-dim); color: var(--amber);
+  border: 1px solid rgba(255, 170, 0, 0.2);
+  box-shadow: 0 0 10px rgba(255,170,0,0.05);
+}
+.status-research {
+  background: var(--violet-dim); color: var(--violet);
+  border: 1px solid rgba(192, 64, 255, 0.2);
+  box-shadow: 0 0 10px rgba(192,64,255,0.05);
+}
+.status-planned {
+  background: rgba(255,255,255,0.02); color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ===== CLAIMS ===== */
 .claims-filter {
-  display: flex; flex-wrap: wrap; gap: 0.5rem;
-  justify-content: center; margin-bottom: 2rem;
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  justify-content: center; margin-bottom: 2.5rem;
 }
 .claims-filter button {
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  border: 1px solid;
-  background: transparent;
-  color: var(--text-secondary);
+  padding: 0.5rem 1.2rem; border-radius: 8px;
+  font-size: 0.75rem; cursor: pointer;
+  font-family: var(--font-mono); border: 1px solid;
+  background: transparent; color: var(--text-secondary);
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 .claims-filter button:hover, .claims-filter button.active {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
 }
 .claim-item {
-  display: grid;
-  grid-template-columns: 130px 1fr 140px;
-  gap: 1rem; align-items: center;
-  padding: 1rem 1.5rem;
+  display: grid; grid-template-columns: 130px 1fr 140px;
+  gap: 1.2rem; align-items: center;
+  padding: 1.2rem 1.8rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  transition: all 0.3s ease;
-  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 0.8rem;
+  backdrop-filter: blur(15px);
 }
 .claim-item:hover {
-  border-color: var(--border-hover);
+  border-color: rgba(0, 240, 255, 0.1);
   background: rgba(255,255,255,0.03);
-}
-.verify-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 0.85rem;
-}
-.verify-table th {
-  padding: 1rem;
-  text-align: left;
-  color: var(--text-muted);
-  font-weight: 600;
-  border-bottom: 2px solid rgba(0,229,255,0.3);
-  background: rgba(20,20,45,0.8);
-}
-.verify-table td {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-}
-.verify-table tr {
-  background: rgba(20,20,45,0.4);
-  transition: all 0.3s ease;
-}
-.verify-table tr:hover {
-  background: rgba(0,229,255,0.05);
-}
-.terminal-block {
-  background: #0a0a14;
-  border: 1px solid rgba(0,229,255,0.15);
-  border-radius: 12px;
-  padding: 1.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  line-height: 1.8;
-  color: var(--text-secondary);
-  overflow-x: auto;
-}
-.terminal-header {
-  display: flex; gap: 0.4rem; margin-bottom: 1rem;
-}
-.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-.arch-map {
-  display: flex; flex-direction: column; align-items: center; gap: 1rem;
-  padding: 3rem 2rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-}
-.arch-root {
-  padding: 1rem 2.5rem;
-  background: rgba(0,229,255,0.08);
-  border: 1.5px solid var(--accent-cyan);
-  border-radius: 12px;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.arch-root:hover { box-shadow: 0 0 30px rgba(0,229,255,0.2); transform: scale(1.03); }
-.arch-level {
-  display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;
-}
-.arch-node {
-  padding: 0.8rem 1.5rem;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
-}
-.arch-node:hover {
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-  box-shadow: 0 0 20px rgba(0,229,255,0.1);
-  transform: translateY(-2px);
-}
-.arch-connector-v {
-  width: 2px; height: 20px;
-  background: linear-gradient(180deg, var(--accent-cyan), transparent);
-}
-.arch-connector-h {
-  height: 2px; width: 60%;
-  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-}
-.timeline {
-  position: relative;
-  padding-left: 2rem;
-}
-.timeline::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: linear-gradient(180deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple));
-  border-radius: 2px;
-}
-.timeline-item {
-  position: relative;
-  padding-bottom: 3rem;
-  padding-left: 2rem;
-}
-.timeline-item::before {
-  content: '';
-  position: absolute; left: -2rem; top: 0.3rem;
-  width: 12px; height: 12px;
-  background: var(--bg-primary);
-  border: 2px solid var(--accent-cyan);
-  border-radius: 50%;
-  transform: translateX(-5px);
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
-}
-.timeline-item.completed::before { background: var(--accent-green); border-color: var(--accent-green); box-shadow: 0 0 15px var(--accent-green); }
-.timeline-item.active::before { background: var(--accent-cyan); border-color: var(--accent-cyan); box-shadow: 0 0 15px var(--accent-cyan), 0 0 30px rgba(0,229,255,0.3); }
-.timeline-item.planned::before { background: var(--bg-primary); border-color: var(--text-muted); box-shadow: none; }
-.timeline-date {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--accent-cyan);
-  letter-spacing: 0.08em;
-  margin-bottom: 0.5rem;
-  display: flex; align-items: center; gap: 0.5rem;
-}
-.timeline-item h4 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-.timeline-item p {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  line-height: 1.7;
-}
-.glossary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-.glossary-item {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 1.5rem;
-  backdrop-filter: blur(20px);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-.glossary-item:hover {
-  border-color: var(--border-hover);
   transform: translateX(4px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
 }
-.glossary-term {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--accent-cyan);
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.01em;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.glossary-def {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-.glossary-detail {
-  display: none;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-.glossary-detail code {
-  color: var(--accent-cyan);
-  font-family: var(--font-mono);
-}
-.case-study {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
-  margin-bottom: 4rem;
-  padding: 3rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-}
-.case-study:nth-child(even) { direction: rtl; }
-.case-study:nth-child(even) > * { direction: ltr; }
-.case-study-content h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  display: flex; align-items: center; gap: 0.75rem;
-}
-.case-study-content .tag {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-}
-.tag-blue { background: rgba(68, 136, 255, 0.1); color: var(--accent-blue); border: 1px solid rgba(68, 136, 255, 0.2); }
-.tag-green { background: rgba(0, 230, 118, 0.1); color: var(--accent-green); border: 1px solid rgba(0, 230, 118, 0.2); }
-.tag-orange { background: rgba(255, 171, 64, 0.1); color: var(--accent-orange); border: 1px solid rgba(255, 171, 64, 0.2); }
-.tag-purple { background: rgba(224, 64, 251, 0.1); color: var(--accent-purple); border: 1px solid rgba(224, 64, 251, 0.2); }
-.tag-red { background: rgba(255, 82, 82, 0.1); color: var(--accent-red); border: 1px solid rgba(255, 82, 82, 0.2); }
-.tag-cyan { background: rgba(0, 229, 255, 0.1); color: var(--accent-cyan); border: 1px solid rgba(0, 229, 255, 0.2); }
-.case-study-content p {
-  color: var(--text-secondary);
-  line-height: 1.8;
-  margin-bottom: 1.5rem;
-}
-.case-stats {
-  display: flex; gap: 2rem;
-  flex-wrap: wrap;
-}
-.case-stat {
-  text-align: left;
-}
-.case-stat-value {
-  font-family: var(--font-mono);
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.case-stat-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.case-study-visual {
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  padding: 2rem;
-  border: 1px solid var(--border-subtle);
-  min-height: 280px;
-  display: flex; flex-direction: column; justify-content: center;
+
+/* ===== TERMINAL ===== */
+.terminal-block {
+  background: #040408;
+  border: 1px solid rgba(0, 240, 255, 0.08);
+  border-radius: 14px; padding: 1.8rem;
+  font-family: var(--font-mono); font-size: 0.84rem;
+  line-height: 1.9; color: var(--text-secondary);
+  overflow-x: auto;
   position: relative;
-  overflow: hidden;
 }
-.case-study-visual::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 30% 50%, rgba(0, 229, 255, 0.04) 0%, transparent 70%);
+.terminal-block::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.3;
 }
-.code-block {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  line-height: 1.8;
-  color: var(--text-secondary);
-  position: relative; z-index: 1;
+.terminal-header { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ===== TIMELINE ===== */
+.timeline { position: relative; padding-left: 2.5rem; }
+.timeline::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--cyan), var(--blue), var(--violet), var(--pink));
+  border-radius: 2px;
+  box-shadow: 0 0 20px rgba(0,240,255,0.2);
 }
-.code-block .kw { color: var(--accent-purple); }
-.code-block .fn { color: var(--accent-blue); }
-.code-block .str { color: var(--accent-green); }
-.code-block .num { color: var(--accent-orange); }
-.code-block .cm { color: var(--text-muted); }
+.timeline-item { position: relative; padding-bottom: 3.5rem; padding-left: 2.5rem; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -2.5rem; top: 0.3rem;
+  width: 14px; height: 14px; background: var(--bg-deep);
+  border: 2px solid var(--cyan); border-radius: 50%;
+  transform: translateX(-6px);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), 0 0 30px rgba(0,240,255,0.1);
+  transition: all 0.4s ease;
+}
+.timeline-item:hover::before {
+  transform: translateX(-6px) scale(1.2);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.5), 0 0 50px rgba(0,240,255,0.2);
+}
+.timeline-item.completed::before {
+  background: var(--green); border-color: var(--green);
+  box-shadow: 0 0 20px var(--green), 0 0 40px rgba(0,255,136,0.2);
+}
+.timeline-item.active::before {
+  background: var(--cyan); border-color: var(--cyan);
+  box-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0,240,255,0.3);
+  animation: pulseNav 2s ease-in-out infinite;
+}
+.timeline-item.planned::before {
+  background: var(--bg-deep); border-color: var(--text-muted);
+  box-shadow: none;
+}
+.timeline-date {
+  font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600;
+  color: var(--cyan); letter-spacing: 0.1em; margin-bottom: 0.6rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.timeline-item h4 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.6rem; }
+.timeline-item p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.8; }
+
+/* ===== METRICS ===== */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-top: 3rem;
+  gap: 1.8rem; margin-top: 3.5rem;
 }
 .metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 2rem 1.5rem;
-  text-align: center;
-  backdrop-filter: blur(20px);
-  transition: all 0.4s ease;
+  border-radius: 20px; padding: 2.2rem 1.8rem;
+  text-align: center; backdrop-filter: blur(25px);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative; overflow: hidden;
 }
+.metric-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0; transition: opacity 0.4s ease;
+}
+.metric-card:hover::before { opacity: 1; }
 .metric-card:hover {
-  border-color: var(--border-hover);
-  box-shadow: 0 0 40px rgba(0, 229, 255, 0.06);
-  transform: translateY(-2px);
+  border-color: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 50px rgba(0, 240, 255, 0.06);
+  transform: translateY(-4px);
 }
 .metric-value {
-  font-family: var(--font-mono);
-  font-size: 2.2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  font-family: var(--font-mono); font-size: 2.6rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--blue), var(--violet));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
-  margin-bottom: 0.5rem;
+  background-clip: text; line-height: 1; margin-bottom: 0.6rem;
 }
 .metric-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 0.82rem; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.12em;
+  font-family: var(--font-mono);
 }
-.contact-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-}
+
+/* ===== CONTACT ===== */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; }
 .contact-info h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
+  font-size: 1.6rem; font-weight: 700; margin-bottom: 1.2rem;
+  background: linear-gradient(135deg, #fff, var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
-.contact-info p {
-  color: var(--text-secondary);
-  line-height: 1.8;
-  margin-bottom: 2rem;
-}
-.contact-links {
-  display: flex; flex-direction: column; gap: 1rem;
-}
+.contact-info p { color: var(--text-secondary); line-height: 1.9; margin-bottom: 2rem; font-size: 1rem; }
+.contact-links { display: flex; flex-direction: column; gap: 1.2rem; }
 .contact-link {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 1rem 1.5rem;
+  display: flex; align-items: center; gap: 1.2rem;
+  padding: 1.2rem 1.8rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  text-decoration: none;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-  cursor: none;
+  border-radius: 14px; text-decoration: none;
+  color: var(--text-primary); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(15px);
 }
 .contact-link:hover {
-  border-color: var(--accent-cyan);
-  transform: translateX(4px);
-  box-shadow: 0 0 25px rgba(0, 229, 255, 0.08);
+  border-color: var(--cyan);
+  transform: translateX(8px);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.08), 0 10px 40px rgba(0,0,0,0.3);
 }
 .contact-link-icon {
-  width: 40px; height: 40px;
-  border-radius: 10px;
+  width: 44px; height: 44px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  font-size: 1.3rem;
+  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(192,64,255,0.1));
+  border: 1px solid rgba(0, 240, 255, 0.12);
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
-.contact-link-text {
-  display: flex; flex-direction: column;
+.contact-link:hover .contact-link-icon {
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 0 20px rgba(0,240,255,0.15);
 }
+.contact-link-text { display: flex; flex-direction: column; }
 .contact-link-label {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em;
 }
-.contact-link-value {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+.contact-link-value { font-size: 1rem; font-weight: 500; }
+
+/* ===== FOOTER ===== */
 footer {
-  position: relative;
-  z-index: 10;
-  padding: 3rem 2rem;
-  border-top: 1px solid var(--border-subtle);
+  position: relative; z-index: 10;
+  padding: 3.5rem 2rem; border-top: 1px solid var(--border-subtle);
   text-align: center;
 }
 .footer-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  max-width: 1200px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 1.5rem;
 }
 .footer-left {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-muted); letter-spacing: 0.08em;
 }
-.footer-right {
-  display: flex; gap: 1.5rem;
-}
+.footer-right { display: flex; gap: 2rem; }
 .footer-right a {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color 0.3s ease;
-  cursor: none;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-muted); text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
 }
 .footer-right a:hover {
-  color: var(--accent-cyan);
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0,240,255,0.3);
 }
+
+/* ===== VISITOR COUNTER ===== */
 .visitor-counter {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: 1000;
-  padding: 0.6rem 1rem;
-  background: rgba(12, 12, 24, 0.85);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(0, 229, 255, 0.15);
-  border-radius: 8px;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--accent-cyan);
-  letter-spacing: 0.05em;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 229, 255, 0.05);
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
+  padding: 0.7rem 1.2rem;
+  background: rgba(2, 2, 8, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 240, 255, 0.12);
+  border-radius: 10px;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--cyan); letter-spacing: 0.08em;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.5), 0 0 20px rgba(0,240,255,0.05);
 }
 .visitor-counter::before {
-  content: '';
-  display: inline-block;
-  width: 6px; height: 6px;
-  background: var(--accent-cyan);
-  border-radius: 50%;
-  margin-right: 0.5rem;
-  box-shadow: 0 0 8px var(--accent-cyan);
-  animation: pulse 2s ease-in-out infinite;
+  content: ''; display: inline-block;
+  width: 6px; height: 6px; background: var(--cyan);
+  border-radius: 50%; margin-right: 0.6rem;
+  box-shadow: 0 0 10px var(--cyan);
+  animation: pulseNav 2s ease-in-out infinite;
 }
+
+/* ===== SCROLL REVEAL ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== GLITCH EFFECT ===== */
+.glitch-text {
+  position: relative;
+}
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+}
+.glitch-text:hover::before {
+  animation: glitch1 0.3s ease;
+  color: var(--cyan);
+  opacity: 0.8;
+}
+.glitch-text:hover::after {
+  animation: glitch2 0.3s ease;
+  color: var(--violet);
+  opacity: 0.8;
+}
+@keyframes glitch1 {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  20% { clip-path: inset(20% 0 60% 0); transform: translate(-3px, 2px); }
+  40% { clip-path: inset(50% 0 30% 0); transform: translate(3px, -2px); }
+  60% { clip-path: inset(10% 0 70% 0); transform: translate(-2px, 1px); }
+  80% { clip-path: inset(70% 0 10% 0); transform: translate(2px, -1px); }
+}
+@keyframes glitch2 {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  20% { clip-path: inset(60% 0 20% 0); transform: translate(3px, -2px); }
+  40% { clip-path: inset(30% 0 50% 0); transform: translate(-3px, 2px); }
+  60% { clip-path: inset(70% 0 10% 0); transform: translate(2px, 1px); }
+  80% { clip-path: inset(10% 0 70% 0); transform: translate(-2px, -1px); }
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .nav-links { display: none; }
-  .hero { padding: 6rem 1.5rem 3rem; }
-  .case-study, .contact-grid { grid-template-columns: 1fr; }
-  .case-study:nth-child(even) { direction: ltr; }
-  .section { padding: 4rem 1.5rem; }
-  .cursor-dot, .cursor-ring { display: none; }
-  body { cursor: auto; }
-  .sirm-node { width: 260px; }
-  .claim-item { grid-template-columns: 1fr; gap: 0.5rem; }
-  .arch-level { gap: 1rem; }
-  .pipeline-container { gap: 0.3rem; }
-  .pipe-step { padding: 0.5rem 0.8rem; font-size: 0.65rem; }
+  .hero { padding: 7rem 1.5rem 3rem; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .section { padding: 5rem 1.5rem; }
+  .claim-item { grid-template-columns: 1fr; gap: 0.6rem; }
+  .footer-content { flex-direction: column; text-align: center; }
+  .pipeline-container { gap: 0.4rem; }
+  .pipe-step { padding: 0.5rem 1rem; font-size: 0.65rem; }
 }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--bg-secondary); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
 ::selection {
-  background: rgba(0, 229, 255, 0.25);
+  background: rgba(0, 240, 255, 0.2);
   color: var(--text-primary);
 }
 </style>
 <script data-goatcounter="https://rft-sirm.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
+<canvas id="webgl-canvas"></canvas>
+<div class="noise-overlay"></div>
 <div class="scanlines"></div>
-<div class="noise"></div>
-<div class="parallax-grid" id="parallax-grid"></div>
-<canvas id="matrix-canvas"></canvas>
-<canvas id="particle-canvas"></canvas>
-
-<div class="cursor-dot" id="cursor-dot"></div>
-<div class="cursor-ring" id="cursor-ring"></div>
+<div class="vignette"></div>
 
 <nav id="navbar">
-  <a href="#" class="nav-logo" id="nav-logo" onclick="return false;">
-    <span>RFT-SIRM</span>
-  </a>
+  <a href="#" class="nav-logo" id="nav-logo" onclick="return false;"><span>RFT-SIRM</span></a>
   <ul class="nav-links">
     <li><a href="#pipeline" data-scroll>Pipeline</a></li>
-    <li><a href="#sirm" data-scroll>SIRM</a></li>
-    <li><a href="#invariants" data-scroll>Invariants</a></li>
     <li><a href="#evidence" data-scroll>Evidence</a></li>
     <li><a href="#claims" data-scroll>Claims</a></li>
-    <li><a href="#verify" data-scroll>Verify</a></li>
-    <li><a href="#repro" data-scroll>Repro</a></li>
-    <li><a href="#arch" data-scroll>Arch</a></li>
     <li><a href="#cases" data-scroll>Cases</a></li>
-    <li><a href="#ai" data-scroll>AI</a></li>
     <li><a href="#timeline" data-scroll>Timeline</a></li>
-    <li><a href="#glossary" data-scroll>Glossary</a></li>
     <li><a href="#contact" data-scroll>Contact</a></li>
   </ul>
 </nav>
 
+<div class="audio-toggle" id="audio-toggle" title="Toggle ambient sound">🔇</div>
+
 <section class="hero" id="lab">
   <div class="hero-badge">Research Platform — Est. 2026</div>
   <h1>
-    <span class="line1">Deterministic Execution.<br>Invariant Systems.</span>
+    <span class="line1 glitch-text" data-text="Deterministic Execution.&#10;Invariant Systems.">Deterministic Execution.<br>Invariant Systems.</span>
     <span class="line2">Formal verification for distributed state machines</span>
   </h1>
   <p class="hero-subtitle">
-    RFT-SIRM builds mathematically rigorous execution platforms where every state transition 
+    RFT-SIRM builds mathematically rigorous execution platforms where every state transition
     is provably correct. Zero invariant violations across 4.29 billion+ operations.
   </p>
 
   <div id="pipeline" class="pipeline-container">
-    <div class="pipe-step" data-step="claim" style="border-color:rgba(0,229,255,0.4);color:#00e5ff;">CLAIM</div>
+    <div class="pipe-step" data-step="claim" style="border-color:rgba(0,240,255,0.4);color:#00f0ff;">CLAIM</div>
     <span class="pipe-arrow">→</span>
     <div class="pipe-step" data-step="model" style="border-color:rgba(68,136,255,0.4);color:#4488ff;">MODEL</div>
     <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="exec" style="border-color:rgba(224,64,251,0.4);color:#e040fb;">EXECUTION</div>
+    <div class="pipe-step" data-step="exec" style="border-color:rgba(192,64,255,0.4);color:#c040ff;">EXECUTION</div>
     <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="verify" style="border-color:rgba(0,230,118,0.4);color:#00e676;">VERIFICATION</div>
+    <div class="pipe-step" data-step="verify" style="border-color:rgba(0,255,136,0.4);color:#00ff88;">VERIFICATION</div>
     <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="evidence" style="border-color:rgba(255,171,64,0.4);color:#ffab40;">EVIDENCE</div>
+    <div class="pipe-step" data-step="evidence" style="border-color:rgba(255,170,0,0.4);color:#ffaa00;">EVIDENCE</div>
     <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="repro" style="border-color:rgba(255,82,82,0.4);color:#ff5252;">REPRODUCTION</div>
+    <div class="pipe-step" data-step="repro" style="border-color:rgba(255,68,68,0.4);color:#ff4444;">REPRODUCTION</div>
   </div>
   <div id="pipeline-detail">
-    <span style="color:#00e5ff;font-weight:600;">Click any stage above</span> to trace the research pipeline from mathematical claim to reproducible evidence.
+    <span style="color:#00f0ff;font-weight:600;">Click any stage above</span> to trace the research pipeline from mathematical claim to reproducible evidence.
   </div>
-</section>
 
-<section class="section" id="sirm">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label">State Machine</span>
-      <h2 class="section-title">SIRM Transition Model</h2>
-      <p class="section-desc">Interactive execution flow. Hover each node for technical specification.</p>
-    </div>
-    <div class="sirm-flow">
-      <div class="sirm-node" data-info="S₀ — Initial state vector: global_field, total_base_sum, total_supply, total_minted, total_burned, participants_count, dust_accumulator" style="background:rgba(0,229,255,0.08);border:1.5px solid #00e5ff;color:#00e5ff;">INITIAL STATE S₀</div>
-      <span class="sirm-arrow">↓</span>
-      <div class="sirm-node" data-info="Operation op(t) ∈ {register, unregister, transfer, redistribute, apply_neg_entropy}. Drawn from fuzz corpus or live transaction." style="background:rgba(68,136,255,0.08);border:1.5px solid #4488ff;color:#4488ff;">OPERATION op(t)</div>
-      <span class="sirm-arrow">↓</span>
-      <div class="sirm-node" data-info="Precondition: valid signatures, non-negative amounts, participant exists, protocol not paused, edge cost within bounds." style="background:rgba(224,64,251,0.08);border:1.5px solid #e040fb;color:#e040fb;">PRECONDITION</div>
-      <span class="sirm-arrow">↓</span>
-      <div class="sirm-node" data-info="State transition: S(t+1) = T(S(t), op(t)). All arithmetic uses checked_add, checked_sub, checked_mul, checked_div." style="background:rgba(255,171,64,0.08);border:1.5px solid #ffab40;color:#ffab40;">STATE TRANSITION</div>
-      <span class="sirm-arrow">↓</span>
-      <div class="sirm-node" data-info="Invariant check I(S): I1 Supply Conservation, I2 Mint/Burn Accounting, I3 Dust Bound, I4 Debt Limit. All four must hold." style="background:rgba(255,82,82,0.08);border:1.5px solid #ff5252;color:#ff5252;">INVARIANT CHECK I(S)</div>
-      <div class="sirm-branch">
-        <div class="sirm-node" data-info="All invariants hold → atomic commit → state hash updated → deterministic replay possible." style="background:rgba(0,230,118,0.08);border:1.5px solid #00e676;color:#00e676;width:auto;padding:0.8rem 1.5rem;">PASS → COMMIT</div>
-        <div class="sirm-node" data-info="Any invariant violated → Err(INVARIANT_VIOLATION) → state unchanged → operation rejected." style="background:rgba(255,82,82,0.08);border:1.5px solid #ff5252;color:#ff5252;width:auto;padding:0.8rem 1.5rem;">FAIL → REJECT</div>
-      </div>
-      <span class="sirm-arrow">↓</span>
-      <div class="sirm-node" data-info="Deterministic hash: Hash(S_final) = deterministic(seed, ops[]). Enables differential validation between Python and Rust implementations." style="background:rgba(0,229,255,0.08);border:1.5px solid #00e5ff;color:#00e5ff;">STATE HASH</div>
-    </div>
-    <div id="sirm-detail">Hover over any node to see technical specification</div>
-  </div>
-</section>
-
-<section class="section" id="invariants" style="background:rgba(255,255,255,0.01);">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label">Hard Constraints</span>
-      <h2 class="section-title">Invariant Explorer</h2>
-      <p class="section-desc">Click any invariant to expand full technical specification.</p>
-    </div>
-    <div class="cards-grid">
-      <div class="inv-card" onclick="toggleInv(this)">
-        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-          <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15);color:#00e5ff;">∑</div>
-          <h3 style="font-size:1.1rem;font-weight:600;">I1 — Supply Conservation</h3>
-          <span class="status-badge" style="margin-left:auto;background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
-        </div>
-        <div class="inv-summary">
-          <code style="display:block;padding:0.8rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;color:#00e5ff;margin-bottom:1rem;font-family:var(--font-mono);">total_supply = Σ base_balance[i] + global_field × p</code>
-          <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6;">Total supply is conserved as the sum of all base balances plus a global scalar field multiplied by participant count.</p>
-        </div>
-        <div class="inv-detail">
-          <strong>Definition:</strong> Conservation invariant over the entire protocol state.<br>
-          <strong>State variables:</strong> total_supply, total_base_sum, global_field, participants_count.<br>
-          <strong>Why it exists:</strong> Prevents silent supply inflation/deflation outside explicit mint/burn operations.<br>
-          <strong>Failure mode:</strong> Overflow in global_field × p, desync between base_sum and individual balances, rounding error accumulation.<br>
-          <strong>How checked:</strong> <code>check_invariant()</code> after every op in Rust core. Checked arithmetic throughout.<br>
-          <strong>Repository:</strong> <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank">Rift-L1-Blockchain</a><br>
-          <strong>Evidence:</strong> 1T+ ops fuzzed, 0 violations. <span style="color:#00e676;">→ View Evidence</span><br>
-          <strong>Limitation:</strong> In-memory state machine only; no consensus/network layer tested.
-        </div>
-      </div>
-      <div class="inv-card" onclick="toggleInv(this)">
-        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-          <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.15);color:#00e676;">±</div>
-          <h3 style="font-size:1.1rem;font-weight:600;">I2 — Mint/Burn Accounting</h3>
-          <span class="status-badge" style="margin-left:auto;background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
-        </div>
-        <div class="inv-summary">
-          <code style="display:block;padding:0.8rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;color:#00e676;margin-bottom:1rem;font-family:var(--font-mono);">total_supply = total_minted − total_burned</code>
-          <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6;">Every token created or destroyed is explicitly tracked. Supply never changes without a corresponding mint or burn record.</p>
-        </div>
-        <div class="inv-detail">
-          <strong>Definition:</strong> Accounting invariant ensuring complete audit trail of supply changes.<br>
-          <strong>State variables:</strong> total_supply, total_minted, total_burned.<br>
-          <strong>Why it exists:</strong> Ensures no supply manipulation outside tracked operations.<br>
-          <strong>Failure mode:</strong> Transfer that creates supply out of nowhere, burn without decrement, double-mint.<br>
-          <strong>How checked:</strong> Monotonic: total_minted ≥ total_burned. Verified after every state-mutating instruction.<br>
-          <strong>Repository:</strong> <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank">Rift-L1-Blockchain</a>, <a href="https://github.com/RFT-SIRM/Rift-Network" target="_blank">Rift-Network</a><br>
-          <strong>Evidence:</strong> 1T+ ops + 2.5B+ on-chain fuzz runs. <span style="color:#00e676;">→ View Evidence</span><br>
-          <strong>Limitation:</strong> On-chain model does not include all edge cases of SPL token interactions.
-        </div>
-      </div>
-      <div class="inv-card" onclick="toggleInv(this)">
-        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-          <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:rgba(255,171,64,0.08);border:1px solid rgba(255,171,64,0.15);color:#ffab40;">⌊</div>
-          <h3 style="font-size:1.1rem;font-weight:600;">I3 — Dust Bound</h3>
-          <span class="status-badge" style="margin-left:auto;background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
-        </div>
-        <div class="inv-summary">
-          <code style="display:block;padding:0.8rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;color:#ffab40;margin-bottom:1rem;font-family:var(--font-mono);">dust_accumulator &lt; p (when p &gt; 0)</code>
-          <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6;">When precision parameter p > 0, accumulated rounding dust is strictly bounded below the precision threshold.</p>
-        </div>
-        <div class="inv-detail">
-          <strong>Definition:</strong> Bounded invariant on rounding error accumulation.<br>
-          <strong>State variables:</strong> dust_accumulator, participants_count (p).<br>
-          <strong>Why it exists:</strong> Prevents rounding error accumulation from destabilizing supply accounting over time.<br>
-          <strong>Failure mode:</strong> Dust grows unbounded through repeated operations, violating I1 indirectly. Unregister without normalization.<br>
-          <strong>How checked:</strong> Normalized on unregister(). Fuzzed with p=0 and large-p stratified modes.<br>
-          <strong>Repository:</strong> <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank">Rift-L1-Blockchain</a><br>
-          <strong>Evidence:</strong> 5-mode stratified fuzz, dust edge case found and fixed during development. <span style="color:#00e676;">→ View Evidence</span><br>
-          <strong>Limitation:</strong> Dust behavior under extreme churn (rapid register/unregister) not fully characterized.
-        </div>
-      </div>
-      <div class="inv-card" onclick="toggleInv(this)">
-        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-          <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.15);color:#ff5252;">≥</div>
-          <h3 style="font-size:1.1rem;font-weight:600;">I4 — Debt Limit</h3>
-          <span class="status-badge" style="margin-left:auto;background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
-        </div>
-        <div class="inv-summary">
-          <code style="display:block;padding:0.8rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;color:#ff5252;margin-bottom:1rem;font-family:var(--font-mono);">effective_balance[i] ≥ −(total_supply / 10p)</code>
-          <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6;">No single participant can hold negative effective balance beyond 10% of total supply, preventing concentration attacks.</p>
-        </div>
-        <div class="inv-detail">
-          <strong>Definition:</strong> Safety invariant limiting systemic risk from negative positions.<br>
-          <strong>State variables:</strong> base_balance[i], global_field, total_supply, participants_count.<br>
-          <strong>Why it exists:</strong> Limits concentration risk. One account cannot accumulate unlimited debt.<br>
-          <strong>Failure mode:</strong> Negative global_field shifts all balances; single participant exceeds 10% threshold.<br>
-          <strong>How checked:</strong> DebtOnExit rejection path. Negative field boundary mode (Mode 2) in fuzzer.<br>
-          <strong>Repository:</strong> <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank">Rift-L1-Blockchain</a>, <a href="https://github.com/RFT-SIRM/Rift-Network" target="_blank">Rift-Network</a><br>
-          <strong>Evidence:</strong> Negative field mode in 1T+ fuzz campaign. <span style="color:#00e676;">→ View Evidence</span><br>
-          <strong>Limitation:</strong> 10% threshold is protocol parameter; economic optimality not proven.
-        </div>
-      </div>
-    </div>
-  </div>
+  <a href="matrix.html" class="matrix-link">Open Interactive Verification Matrix</a>
 </section>
 
 <section class="section" id="evidence">
   <div class="container">
-    <div class="section-header">
+    <div class="section-header reveal">
       <span class="section-label">Every Number Has Provenance</span>
       <h2 class="section-title">Evidence Center</h2>
       <p class="section-desc">Repository, harness, seed, environment, limitation — every metric traced to its source.</p>
     </div>
     <div class="evidence-grid">
-      <div class="evidence-card">
+      <div class="evidence-card reveal" data-delay="0">
         <div class="evidence-header">
           <div class="evidence-value">1T+</div>
-          <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
+          <span class="status-badge status-validated">VALIDATED</span>
         </div>
-        <h4 style="font-size:1rem;margin-bottom:0.5rem;">Rift L1 Core Operations</h4>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Rift L1 Core Operations</h4>
         <div class="evidence-meta">
           <div><strong>Repository:</strong> Rift-L1-Blockchain</div>
           <div><strong>Harness:</strong> libFuzzer, 5 stratified modes</div>
           <div><strong>Duration:</strong> 5h 55m per CI run</div>
-          <div><strong>Throughput:</strong> ~5.75M ops/sec (GH Runner)</div>
+          <div><strong>Throughput:</strong> ~5.75M ops/sec</div>
           <div><strong>Invariant set:</strong> I1–I4</div>
           <div><strong>Result:</strong> 0 violations, 0 crashes</div>
           <div><strong>Limitation:</strong> In-memory state machine; no network/consensus</div>
         </div>
         <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Repository →</a>
-          <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain/actions" target="_blank" rel="noopener" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View CI →</a>
+          <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" class="cyan">View Repository →</a>
+          <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain/actions" target="_blank" rel="noopener" class="blue">View CI →</a>
         </div>
       </div>
-      <div class="evidence-card">
+      <div class="evidence-card reveal" data-delay="100">
         <div class="evidence-header">
           <div class="evidence-value">4.29B+</div>
-          <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
+          <span class="status-badge status-validated">VALIDATED</span>
         </div>
-        <h4 style="font-size:1rem;margin-bottom:0.5rem;">ABIv2 Memory Contexts</h4>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">ABIv2 Memory Contexts</h4>
         <div class="evidence-meta">
           <div><strong>Repository:</strong> agave-abiv2-memory-contexts</div>
           <div><strong>Harness:</strong> libFuzzer + Agave SVM mock</div>
@@ -1202,16 +852,16 @@ footer {
           <div><strong>Limitation:</strong> Research artifact; not merged upstream</div>
         </div>
         <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/agave-abiv2-memory-contexts" target="_blank" rel="noopener" style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Repository →</a>
-          <a href="https://github.com/anza-xyz/agave/issues/25" target="_blank" rel="noopener" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Issue →</a>
+          <a href="https://github.com/RFT-SIRM/agave-abiv2-memory-contexts" target="_blank" rel="noopener" class="cyan">View Repository →</a>
+          <a href="https://github.com/anza-xyz/agave/issues/25" target="_blank" rel="noopener" class="blue">View Issue →</a>
         </div>
       </div>
-      <div class="evidence-card">
+      <div class="evidence-card reveal" data-delay="200">
         <div class="evidence-header">
           <div class="evidence-value">91M</div>
-          <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
+          <span class="status-badge status-validated">VALIDATED</span>
         </div>
-        <h4 style="font-size:1rem;margin-bottom:0.5rem;">Agave Scheduler Fuzz</h4>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Agave Scheduler Fuzz</h4>
         <div class="evidence-meta">
           <div><strong>Repository:</strong> agave-rift-scheduler</div>
           <div><strong>Harness:</strong> libFuzzer, conflict-graph scheduler</div>
@@ -1222,16 +872,16 @@ footer {
           <div><strong>Limitation:</strong> Standalone scheduler; not integrated into Agave</div>
         </div>
         <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/agave-rift-scheduler" target="_blank" rel="noopener" style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Repository →</a>
-          <a href="https://github.com/anza-xyz/agave/issues/14274" target="_blank" rel="noopener" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View RFC →</a>
+          <a href="https://github.com/RFT-SIRM/agave-rift-scheduler" target="_blank" rel="noopener" class="cyan">View Repository →</a>
+          <a href="https://github.com/anza-xyz/agave/issues/14274" target="_blank" rel="noopener" class="blue">View RFC →</a>
         </div>
       </div>
-      <div class="evidence-card">
+      <div class="evidence-card reveal" data-delay="300">
         <div class="evidence-header">
           <div class="evidence-value">184K</div>
-          <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
+          <span class="status-badge status-validated">VALIDATED</span>
         </div>
-        <h4 style="font-size:1rem;margin-bottom:0.5rem;">Aave V4 Hub Model</h4>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Aave V4 Hub Model</h4>
         <div class="evidence-meta">
           <div><strong>Repository:</strong> aave-v4-hub-model-review</div>
           <div><strong>Harness:</strong> Python state machine, seeded</div>
@@ -1242,16 +892,16 @@ footer {
           <div><strong>Limitation:</strong> Model-level only; not bytecode audit</div>
         </div>
         <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank" rel="noopener" style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Repository →</a>
-          <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review/blob/main/MEMO.md" target="_blank" rel="noopener" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Memo →</a>
+          <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank" rel="noopener" class="cyan">View Repository →</a>
+          <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review/blob/main/MEMO.md" target="_blank" rel="noopener" class="blue">View Memo →</a>
         </div>
       </div>
-      <div class="evidence-card">
+      <div class="evidence-card reveal" data-delay="400">
         <div class="evidence-header">
           <div class="evidence-value">1B+</div>
-          <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
+          <span class="status-badge status-validated">VALIDATED</span>
         </div>
-        <h4 style="font-size:1rem;margin-bottom:0.5rem;">seL4 CDT Verification</h4>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">seL4 CDT Verification</h4>
         <div class="evidence-meta">
           <div><strong>Repository:</strong> UltraCore-RFT (seL4 module)</div>
           <div><strong>Harness:</strong> Deterministic state-machine fuzz</div>
@@ -1262,15 +912,15 @@ footer {
           <div><strong>Limitation:</strong> Complementary validation; not replacing seL4 proof</div>
         </div>
         <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Repository →</a>
+          <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" class="cyan">View Repository →</a>
         </div>
       </div>
-      <div class="evidence-card">
+      <div class="evidence-card reveal" data-delay="500">
         <div class="evidence-header">
           <div class="evidence-value">2.5B+</div>
-          <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">VALIDATED</span>
+          <span class="status-badge status-validated">VALIDATED</span>
         </div>
-        <h4 style="font-size:1rem;margin-bottom:0.5rem;">Rift Network On-Chain</h4>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Rift Network On-Chain</h4>
         <div class="evidence-meta">
           <div><strong>Repository:</strong> Rift-Network</div>
           <div><strong>Harness:</strong> Anchor workspace fuzz + manual review</div>
@@ -1281,537 +931,185 @@ footer {
           <div><strong>Limitation:</strong> Audit report under NDA; summary only public</div>
         </div>
         <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);text-decoration:none;display:inline-block;padding:0.3rem 0.7rem;border-radius:4px;font-family:var(--font-mono);font-size:0.7rem;transition:all 0.3s ease;">View Repository →</a>
-          <span style="background:rgba(255,171,64,0.08);color:#ffab40;border:1px solid rgba(255,171,64,0.15);">Audit Summary</span>
+          <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" class="cyan">View Repository →</a>
+          <span style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,170,0,0.15);font-size:0.7rem;padding:0.35rem 0.8rem;border-radius:6px;font-family:var(--font-mono);">Audit Summary</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="claims" style="background:rgba(255,255,255,0.01);">
+<section class="section" id="claims" style="background:rgba(255,255,255,0.003);">
   <div class="container">
-    <div class="section-header">
+    <div class="section-header reveal">
       <span class="section-label">Traceability</span>
       <h2 class="section-title">Claims Registry</h2>
       <p class="section-desc">Every technical claim with its current evidentiary status. Never automatically promoted.</p>
     </div>
-    <div class="claims-filter">
-      <button onclick="filterClaims('all')" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:var(--text-secondary);">All</button>
-      <button onclick="filterClaims('validated')" style="background:rgba(0,230,118,0.08);border-color:rgba(0,230,118,0.2);color:#00e676;">🟢 Validated</button>
-      <button onclick="filterClaims('implemented')" style="background:rgba(68,136,255,0.08);border-color:rgba(68,136,255,0.2);color:#4488ff;">🔵 Implemented</button>
-      <button onclick="filterClaims('experimental')" style="background:rgba(255,171,64,0.08);border-color:rgba(255,171,64,0.2);color:#ffab40;">🟡 Experimental</button>
-      <button onclick="filterClaims('research')" style="background:rgba(224,64,251,0.08);border-color:rgba(224,64,251,0.2);color:#e040fb;">🟣 Research</button>
-      <button onclick="filterClaims('planned')" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.15);color:var(--text-muted);">⚪ Planned</button>
+    <div class="claims-filter reveal">
+      <button onclick="filterClaims('all')" style="border-color:rgba(255,255,255,0.1);color:var(--text-secondary);">All</button>
+      <button onclick="filterClaims('validated')" style="border-color:rgba(0,255,136,0.2);color:#00ff88;">🟢 Validated</button>
+      <button onclick="filterClaims('implemented')" style="border-color:rgba(68,136,255,0.2);color:#4488ff;">🔵 Implemented</button>
+      <button onclick="filterClaims('experimental')" style="border-color:rgba(255,170,0,0.2);color:#ffaa00;">🟡 Experimental</button>
+      <button onclick="filterClaims('research')" style="border-color:rgba(192,64,255,0.2);color:#c040ff;">🟣 Research</button>
+      <button onclick="filterClaims('planned')" style="border-color:rgba(255,255,255,0.15);color:var(--text-muted);">⚪ Planned</button>
     </div>
     <div id="claims-list">
-      <div class="claim-item" data-status="validated">
-        <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);text-align:center;">VALIDATED</span>
-        <span style="font-size:0.9rem;">SIRM I1–I4 hold across 1T+ core operations</span>
+      <div class="claim-item reveal" data-status="validated" data-delay="0">
+        <span class="status-badge status-validated">VALIDATED</span>
+        <span style="font-size:0.92rem;">SIRM I1–I4 hold across 1T+ core operations</span>
         <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Rift-L1-Blockchain →</a>
       </div>
-      <div class="claim-item" data-status="validated">
-        <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);text-align:center;">VALIDATED</span>
-        <span style="font-size:0.9rem;">O(1) distribution complexity via global_field</span>
+      <div class="claim-item reveal" data-status="validated" data-delay="50">
+        <span class="status-badge status-validated">VALIDATED</span>
+        <span style="font-size:0.92rem;">O(1) distribution complexity via global_field</span>
         <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Rift-L1 / Rift-Network →</a>
       </div>
-      <div class="claim-item" data-status="validated">
-        <span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);text-align:center;">VALIDATED</span>
-        <span style="font-size:0.9rem;">Aave V4 Hub model: 0 invariant violations in 184K ops</span>
+      <div class="claim-item reveal" data-status="validated" data-delay="100">
+        <span class="status-badge status-validated">VALIDATED</span>
+        <span style="font-size:0.92rem;">Aave V4 Hub model: 0 invariant violations in 184K ops</span>
         <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">aave-v4-hub-model →</a>
       </div>
-      <div class="claim-item" data-status="experimental">
-        <span class="status-badge" style="background:rgba(255,171,64,0.1);color:#ffab40;border:1px solid rgba(255,171,64,0.2);text-align:center;">EXPERIMENTAL</span>
-        <span style="font-size:0.9rem;">Conflict-aware scheduler reduces lock churn in Agave banking_stage</span>
+      <div class="claim-item reveal" data-status="experimental" data-delay="150">
+        <span class="status-badge status-experimental">EXPERIMENTAL</span>
+        <span style="font-size:0.92rem;">Conflict-aware scheduler reduces lock churn in Agave banking_stage</span>
         <a href="https://github.com/RFT-SIRM/agave-rift-scheduler" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">agave-rift-scheduler →</a>
       </div>
-      <div class="claim-item" data-status="implemented">
-        <span class="status-badge" style="background:rgba(68,136,255,0.1);color:#4488ff;border:1px solid rgba(68,136,255,0.2);text-align:center;">IMPLEMENTED</span>
-        <span style="font-size:0.9rem;">Per-frame writable permission rollback for ABIv2</span>
+      <div class="claim-item reveal" data-status="implemented" data-delay="200">
+        <span class="status-badge" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.2);text-align:center;">IMPLEMENTED</span>
+        <span style="font-size:0.92rem;">Per-frame writable permission rollback for ABIv2</span>
         <a href="https://github.com/RFT-SIRM/agave-abiv2-memory-contexts" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">agave-abiv2-mem →</a>
       </div>
-      <div class="claim-item" data-status="research">
-        <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);text-align:center;">RESEARCH</span>
-        <span style="font-size:0.9rem;">Invariant-preserving deterministic AI agents</span>
+      <div class="claim-item reveal" data-status="research" data-delay="250">
+        <span class="status-badge status-research">RESEARCH</span>
+        <span style="font-size:0.92rem;">Invariant-preserving deterministic AI agents</span>
         <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
       </div>
-      <div class="claim-item" data-status="planned">
-        <span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.15);text-align:center;">PLANNED</span>
-        <span style="font-size:0.9rem;">TLA+ machine-checked proofs of critical invariants</span>
+      <div class="claim-item reveal" data-status="planned" data-delay="300">
+        <span class="status-badge status-planned">PLANNED</span>
+        <span style="font-size:0.92rem;">TLA+ machine-checked proofs of critical invariants</span>
         <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
       </div>
-      <div class="claim-item" data-status="planned">
-        <span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.15);text-align:center;">PLANNED</span>
-        <span style="font-size:0.9rem;">Coq development for core state transition properties</span>
+      <div class="claim-item reveal" data-status="planned" data-delay="350">
+        <span class="status-badge status-planned">PLANNED</span>
+        <span style="font-size:0.92rem;">Coq development for core state transition properties</span>
         <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="verify">
+<section class="section" id="cases">
   <div class="container">
-    <div class="section-header">
-      <span class="section-label">Stack</span>
-      <h2 class="section-title">Verification Matrix</h2>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="verify-table">
-        <thead>
-          <tr>
-            <th>Layer</th>
-            <th>Method</th>
-            <th>Status</th>
-            <th>Evidence</th>
-            <th>Scope</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L1</td>
-            <td>Static Analysis</td>
-            <td><span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">ACTIVE</span></td>
-            <td>Clippy, Miri, cargo-audit on every push</td>
-            <td>All Rust repos</td>
-          </tr>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L2</td>
-            <td>Engineering Tests</td>
-            <td><span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">ACTIVE</span></td>
-            <td>15+ tests/component, differential hash comparison</td>
-            <td>All repos</td>
-          </tr>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L3</td>
-            <td>Stateful Fuzzing</td>
-            <td><span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">ACTIVE</span></td>
-            <td>libFuzzer, 4.29B+ executions, seed-reproducible</td>
-            <td>All systems</td>
-          </tr>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L3b</td>
-            <td>Kernel Verification</td>
-            <td><span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">ACTIVE</span></td>
-            <td>seL4 CDT, 1B+ ops, 123/123 tests</td>
-            <td>UltraCore-RFT</td>
-          </tr>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L3c</td>
-            <td>DeFi Model Fuzz</td>
-            <td><span class="status-badge" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">ACTIVE</span></td>
-            <td>Aave V4 Hub, 184K ops, 0 violations</td>
-            <td>aave-v4-hub-model</td>
-          </tr>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L4</td>
-            <td>TLA+ Specifications</td>
-            <td><span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.15);">PLANNED</span></td>
-            <td>Machine-checked proofs in development</td>
-            <td>UltraCore-RFT</td>
-          </tr>
-          <tr>
-            <td style="color:var(--accent-cyan);font-weight:600;">L4</td>
-            <td>Coq Proofs</td>
-            <td><span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.15);">PLANNED</span></td>
-            <td>Core state transition properties</td>
-            <td>UltraCore-RFT</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="repro" style="background:rgba(255,255,255,0.01);">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label">Reproducibility</span>
-      <h2 class="section-title">Reproducibility Protocol</h2>
-      <p class="section-desc">Every experiment must be traceable from source to result. No black boxes.</p>
-    </div>
-    <div style="max-width:700px;margin:0 auto 3rem;">
-      <div class="terminal-block">
-        <div class="terminal-header">
-          <div class="terminal-dot" style="background:var(--accent-red);"></div>
-          <div class="terminal-dot" style="background:var(--accent-orange);"></div>
-          <div class="terminal-dot" style="background:var(--accent-green);"></div>
-        </div>
-        <div style="color:var(--text-muted);">
-<span style="color:var(--accent-green);">$</span> git clone https://github.com/RFT-SIRM/Rift-L1-Blockchain.git<br>
-<span style="color:var(--accent-green);">$</span> cd Rift-L1-Blockchain<br>
-<span style="color:var(--accent-green);">$</span> cargo build --release<br>
-<span style="color:var(--accent-green);">$</span> cargo test --lib<br>
-<span style="color:var(--accent-green);">$</span> ./target/release/fuzz_integrated --seconds 30 --threads 2<br>
-<br>
-<span style="color:var(--accent-cyan);">[   5s]</span> cases= 28750000  ops= 57500000000  ops/sec= 5750000<br>
-<span style="color:var(--accent-cyan);">[  10s]</span> cases= 57500000  ops= 115000000000 ops/sec= 5750000<br>
-<span style="color:var(--accent-cyan);">...</span><br>
-<span style="color:var(--accent-green);">DONE.</span> Total ops: 1,000,000,000,000+  Violations: 0  Crashes: 0
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;">
-      <div style="padding:1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;text-align:center;min-width:140px;">
-        <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">SOURCE</div>
-        <div style="font-size:0.85rem;color:var(--accent-cyan);">Git Commit</div>
-      </div>
-      <span style="color:var(--text-muted);align-self:center;">→</span>
-      <div style="padding:1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;text-align:center;min-width:140px;">
-        <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">ENV</div>
-        <div style="font-size:0.85rem;color:var(--accent-blue);">Rust + libFuzzer</div>
-      </div>
-      <span style="color:var(--text-muted);align-self:center;">→</span>
-      <div style="padding:1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;text-align:center;min-width:140px;">
-        <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">SEED</div>
-        <div style="font-size:0.85rem;color:var(--accent-purple);">Deterministic</div>
-      </div>
-      <span style="color:var(--text-muted);align-self:center;">→</span>
-      <div style="padding:1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;text-align:center;min-width:140px;">
-        <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">CORPUS</div>
-        <div style="font-size:0.85rem;color:var(--accent-orange);">Structured Input</div>
-      </div>
-      <span style="color:var(--text-muted);align-self:center;">→</span>
-      <div style="padding:1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;text-align:center;min-width:140px;">
-        <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">EXECUTE</div>
-        <div style="font-size:0.85rem;color:var(--accent-green);">1T+ Ops</div>
-      </div>
-      <span style="color:var(--text-muted);align-self:center;">→</span>
-      <div style="padding:1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;text-align:center;min-width:140px;">
-        <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">HASH</div>
-        <div style="font-size:0.85rem;color:var(--accent-red);">State Hash</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="arch">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label">Infrastructure</span>
-      <h2 class="section-title">Architecture Map</h2>
-      <p class="section-desc">Click any node to explore the research ecosystem.</p>
-    </div>
-    <div class="arch-map">
-      <div class="arch-root">RFT-SIRM LABORATORY</div>
-      <div class="arch-connector-v"></div>
-      <div class="arch-root" style="border-color:var(--accent-purple);color:var(--accent-purple);background:rgba(224,64,251,0.08);">SIRM CORE</div>
-      <div class="arch-connector-v"></div>
-      <div class="arch-level">
-        <div class="arch-node" style="border-color:rgba(0,229,255,0.3);color:var(--accent-cyan);">Execution<br><span style="font-size:0.7rem;color:var(--text-muted);">Rift L1</span></div>
-        <div class="arch-node" style="border-color:rgba(0,230,118,0.3);color:var(--accent-green);">Runtime<br><span style="font-size:0.7rem;color:var(--text-muted);">Agave / ABIv2</span></div>
-        <div class="arch-node" style="border-color:rgba(255,171,64,0.3);color:var(--accent-orange);">Verify<br><span style="font-size:0.7rem;color:var(--text-muted);">Fuzz / Diff / Formal</span></div>
-      </div>
-      <div class="arch-connector-v"></div>
-      <div class="arch-level">
-        <div class="arch-node" style="border-color:rgba(68,136,255,0.3);color:var(--accent-blue);">Rift Network<br><span style="font-size:0.7rem;color:var(--text-muted);">Solana / Anchor</span></div>
-        <div class="arch-node" style="border-color:rgba(224,64,251,0.3);color:var(--accent-purple);">AI Research<br><span style="font-size:0.7rem;color:var(--text-muted);">Deterministic Agents</span></div>
-        <div class="arch-node" style="border-color:rgba(255,82,82,0.3);color:var(--accent-red);">seL4 Kernel<br><span style="font-size:0.7rem;color:var(--text-muted);">CDT Validation</span></div>
-      </div>
-      <div class="arch-connector-v"></div>
-      <div class="arch-root" style="border-color:var(--accent-green);color:var(--accent-green);background:rgba(0,230,118,0.08);">RESEARCH EVIDENCE</div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="cases" style="background:rgba(255,255,255,0.01);">
-  <div class="container">
-    <div class="section-header">
+    <div class="section-header reveal">
       <span class="section-label">Evidence</span>
       <h2 class="section-title">Case Studies</h2>
       <p class="section-desc">Real systems. Real verification. Real results across multiple domains.</p>
     </div>
-
-    <div class="case-study">
-      <div class="case-study-content">
-        <span class="tag tag-blue">DeFi</span>
-        <h3>Aave V4 Hub Model Review</h3>
-        <p><strong>Problem:</strong> Verify drawn/deficit ledger transitions in Aave V4 Hub invariant model.</p>
-        <p><strong>Model:</strong> Deterministic Python state machine simulating draw, restore, reportDeficit, eliminateDeficit.</p>
-        <p><strong>Invariants:</strong> Supply conservation, mint/burn accounting, dust bound, debt limit.</p>
-        <p><strong>Method:</strong> Seeded fuzzing + boundary matrix B-1…B-5 with RAY = 10²⁷ precision.</p>
-        <p><strong>Scale:</strong> 184,000 operations.</p>
-        <p><strong>Findings:</strong> 0 novel Class A/B findings. R-01 dust events (expected rounding). R-02 liquidity checks passed.</p>
-        <p><strong>Limitation:</strong> Model-level only. Not bytecode audit. Premium, dual-ledger, add/remove/sweep out of scope.</p>
-        <div class="case-stats">
-          <div class="case-stat"><div class="case-stat-value">184K</div><div class="case-stat-label">Operations</div></div>
-          <div class="case-stat"><div class="case-stat-value">0</div><div class="case-stat-label">Violations</div></div>
-        </div>
-      </div>
-      <div class="case-study-visual">
-        <div class="code-block">
-<span class="cm"># Aave V4 Hub — RAY arithmetic</span>
-<span class="kw">class</span> <span class="fn">AaveHubModel</span>:
-    <span class="kw">def</span> <span class="fn">ray_mul</span>(self, a, b):
-        <span class="kw">return</span> (a * b + RAY/<span class="num">2</span>) // RAY
-
-    <span class="kw">def</span> <span class="fn">check_invariant</span>(self, state):
-        <span class="kw">return</span> state.supply == state.minted - state.burned
-        </div>
-      </div>
-    </div>
-
-    <div class="case-study">
-      <div class="case-study-content">
-        <span class="tag tag-green">SVM</span>
-        <h3>Agave Conflict-Aware Scheduler</h3>
-        <p><strong>Problem:</strong> Unbounded deferral latency under sustained account-level write contention in Agave banking_stage.</p>
-        <p><strong>Model:</strong> Conflict-graph scheduler with hotspot heat map, generation aging, bounded retry semantics.</p>
-        <p><strong>Invariants:</strong> Accounting (I1), generation monotonicity (I2), pass counter monotonicity (I3), deferred queue drain (I4).</p>
-        <p><strong>Method:</strong> libFuzzer with random SchedulerConfig, transactions, and scheduling passes.</p>
-        <p><strong>Scale:</strong> 91M executions per run, ~4,300 exec/sec.</p>
-        <p><strong>Findings:</strong> RFC published (agave#14274). Not a production patch — research artifact.</p>
-        <p><strong>Limitation:</strong> Standalone scheduler. Not integrated into Agave validator. No mainnet benchmarks.</p>
-        <div class="case-stats">
-          <div class="case-stat"><div class="case-stat-value">91M</div><div class="case-stat-label">Exec/Run</div></div>
-          <div class="case-stat"><div class="case-stat-value">#14274</div><div class="case-stat-label">Upstream</div></div>
-        </div>
-      </div>
-      <div class="case-study-visual">
-        <div class="code-block">
-<span class="cm"># Scheduler — conflict graph</span>
-<span class="kw">fn</span> <span class="fn">schedule_batch</span>(txs: &[Tx]) -> Batch {
-    <span class="kw">let</span> graph = <span class="fn">build_conflict_graph</span>(txs);
-    <span class="kw">let</span> groups = <span class="fn">independent_sets</span>(&graph);
-    <span class="fn">execute_parallel</span>(groups)
-}
-<span class="cm">// 91M exec/run, upstream #14274</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="case-study">
-      <div class="case-study-content">
-        <span class="tag tag-orange">Memory</span>
-        <h3>ABIv2 Memory Contexts</h3>
-        <p><strong>Problem:</strong> Writable permission leakage in nested CPI calls under Agave SVM ABIv2.</p>
-        <p><strong>Model:</strong> Per-frame writable permission rollback with dynamic region count calculation.</p>
-        <p><strong>Invariants:</strong> Permission isolation, no cross-frame leakage, bounded region growth.</p>
-        <p><strong>Method:</strong> libFuzzer + Agave SVM mock with structured CPI sequences.</p>
-        <p><strong>Scale:</strong> 4.29B+ executions.</p>
-        <p><strong>Findings:</strong> 1 PoC-only bug found and documented. Upstream uses abi_v2_prepare_for_instruction architecture.</p>
-        <p><strong>Limitation:</strong> Research artifact. Not merged. svm#25 closed.</p>
-        <div class="case-stats">
-          <div class="case-stat"><div class="case-stat-value">4.29B</div><div class="case-stat-label">Executions</div></div>
-          <div class="case-stat"><div class="case-stat-value">1</div><div class="case-stat-label">PoC Bug</div></div>
-        </div>
-      </div>
-      <div class="case-study-visual">
-        <div class="code-block">
-<span class="cm"># Memory — per-frame rollback</span>
-<span class="kw">fn</span> <span class="fn">push_frame</span>(&<span class="kw">mut</span> self) {
-    <span class="kw">let</span> snapshot = <span class="fn">writable_snapshot</span>();
-    self.stack.<span class="fn">push</span>(snapshot);
-}
-<span class="kw">fn</span> <span class="fn">pop_frame</span>(&<span class="kw">mut</span> self) {
-    <span class="kw">let</span> snap = self.stack.<span class="fn">pop</span>().unwrap();
-    <span class="fn">restore_writable</span>(snap);
-}
-        </div>
-      </div>
-    </div>
-
-    <div class="case-study">
-      <div class="case-study-content">
-        <span class="tag tag-purple">Kernel</span>
-        <h3>seL4 CDT Complementary Verification</h3>
-        <p><strong>Problem:</strong> Independent engineering validation of formally verified seL4 microkernel CDT.</p>
-        <p><strong>Model:</strong> Deterministic state-machine fuzzing of Capability Derivation Tree operations.</p>
-        <p><strong>Invariants:</strong> CDT structural integrity, no dangling capabilities, derivation monotonicity.</p>
-        <p><strong>Method:</strong> Deterministic replay with seed-generated operation sequences.</p>
-        <p><strong>Scale:</strong> 1B+ operations, 123/123 post-marathon tests passed.</p>
-        <p><strong>Findings:</strong> 0 kernel crashes. Independent confirmation of seL4 formal proof.</p>
-        <p><strong>Limitation:</strong> Complementary validation, not replacement of formal proof. Does not cover all seL4 subsystems.</p>
-        <div class="case-stats">
-          <div class="case-stat"><div class="case-stat-value">1B+</div><div class="case-stat-label">Operations</div></div>
-          <div class="case-stat"><div class="case-stat-value">123/123</div><div class="case-stat-label">Tests Passed</div></div>
-        </div>
-      </div>
-      <div class="case-study-visual">
-        <div class="code-block">
-<span class="cm"># seL4 CDT — deterministic fuzz</span>
-<span class="kw">for</span> op <span class="kw">in</span> <span class="fn">generate_ops</span>(seed):
-    state = <span class="fn">cdt_apply</span>(state, op)
-    <span class="fn">assert</span>(<span class="fn">cdt_invariant</span>(state))
-
-<span class="cm">// 1B+ ops, 0 crashes</span>
-<span class="cm">// 123/123 post-marathon pass</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="case-study">
-      <div class="case-study-content">
-        <span class="tag tag-red">Blockchain</span>
-        <h3>Rift-L1 & Rift Network</h3>
-        <p><strong>Problem:</strong> Standalone L1 validator core and Solana on-chain protocol with deterministic economic invariants.</p>
-        <p><strong>Model:</strong> SIRM invariants (I1–I4) enforced at protocol core. O(1) distribution via global_field.</p>
-        <p><strong>Invariants:</strong> Supply conservation, mint/burn accounting, dust bound, debt limit.</p>
-        <p><strong>Method:</strong> Stratified libFuzzer (5 modes) + differential validation (Python vs Rust).</p>
-        <p><strong>Scale:</strong> 1T+ L1 ops, 2.5B+ on-chain fuzz runs, 14 audit findings addressed.</p>
-        <p><strong>Findings:</strong> Dust/unregister edge case found and fixed during development.</p>
-        <p><strong>Limitation:</strong> L1 is in-memory state machine; no p2p/consensus yet. On-chain: RC v1.0.</p>
-        <div class="case-stats">
-          <div class="case-stat"><div class="case-stat-value">1T+</div><div class="case-stat-label">L1 Ops</div></div>
-          <div class="case-stat"><div class="case-stat-value">14</div><div class="case-stat-label">Findings Fixed</div></div>
-        </div>
-      </div>
-      <div class="case-study-visual">
-        <div class="code-block">
-<span class="cm"># Rift-L1 — deterministic core</span>
-<span class="kw">pub fn</span> <span class="fn">validate_block</span>(block: Block) -> Result {
-    <span class="kw">for</span> tx <span class="kw">in</span> block.txs {
-        state = <span class="fn">apply</span>(state, tx)?;
-        <span class="fn">assert_invariants</span>(&state)?;
-    }
-    <span class="kw">Ok</span>(state)
-}
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="ai">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label">Intelligence — Roadmap</span>
-      <h2 class="section-title">AI & Research</h2>
-      <p class="section-desc">Planned research directions. No public artifacts yet — active development tracks, not deployed systems.</p>
-    </div>
     <div class="cards-grid">
-      <div class="card">
-        <div class="card-icon" style="color:var(--accent-purple);">🧠</div>
-        <h3>Deterministic Agents</h3>
-        <p>Neural networks constrained by invariant-preserving execution. Every agent action is a state transition subject to SIRM checks.</p>
+      <div class="card reveal" data-delay="0">
+        <div class="card-icon" style="color:var(--blue);">🏦</div>
+        <h3>Aave V4 Hub Model Review</h3>
+        <p>Deterministic Python state machine simulating draw, restore, reportDeficit, eliminateDeficit. RAY = 10²⁷ precision. 184K ops, 0 violations.</p>
         <div class="card-meta">
-          <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);">RESEARCH</span>
-        </div>
-        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
-          <strong>Hypothesis:</strong> Agent state can be modeled as SIRM state machine.<br>
-          <strong>Invariant:</strong> Agent actions never violate protocol invariants.<br>
-          <strong>Current Status:</strong> Conceptual framework only.<br>
-          <strong>Evidence Needed:</strong> Prototype agent with invariant enforcement.
+          <span class="status-badge" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.2);">DeFi</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">184K ops · 0 violations</span>
         </div>
       </div>
-      <div class="card">
-        <div class="card-icon" style="color:var(--accent-cyan);">↻</div>
-        <h3>Stateful AI Workflows</h3>
-        <p>Multi-step inference pipelines where intermediate state is hashable and replayable. No hidden state between steps.</p>
+      <div class="card reveal" data-delay="100">
+        <div class="card-icon" style="color:var(--green);">⚡</div>
+        <h3>Agave Conflict-Aware Scheduler</h3>
+        <p>Conflict-graph scheduler with hotspot heat map and generation aging. 91M exec/run. RFC agave#14274.</p>
         <div class="card-meta">
-          <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);">RESEARCH</span>
-        </div>
-        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
-          <strong>Hypothesis:</strong> LLM inference chains can be deterministic given fixed seed and temperature=0.<br>
-          <strong>Invariant:</strong> State hash at each step is reproducible.<br>
-          <strong>Current Status:</strong> Literature review.<br>
-          <strong>Evidence Needed:</strong> Benchmark across models showing hash stability.
+          <span class="status-badge status-experimental">SVM</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">91M exec/run · RFC #14274</span>
         </div>
       </div>
-      <div class="card">
-        <div class="card-icon" style="color:var(--accent-green);">🔒</div>
-        <h3>Invariant-Preserving Agents</h3>
-        <p>Agents that generate operations but cannot commit state transitions without passing invariant checks. Separation of generation and validation.</p>
+      <div class="card reveal" data-delay="200">
+        <div class="card-icon" style="color:var(--amber);">🧠</div>
+        <h3>ABIv2 Memory Contexts</h3>
+        <p>Per-frame writable permission rollback for nested CPI calls. 4.29B+ executions. 1 PoC bug documented.</p>
         <div class="card-meta">
-          <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);">RESEARCH</span>
-        </div>
-        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
-          <strong>Hypothesis:</strong> AI-generated transactions can be sandboxed and validated before execution.<br>
-          <strong>Invariant:</strong> Generated ops are rejected if they violate I1–I4.<br>
-          <strong>Current Status:</strong> Architecture sketch.<br>
-          <strong>Evidence Needed:</strong> Integration with Rift-L1 core.
+          <span class="status-badge" style="background:rgba(255,170,0,0.08);color:#ffaa00;border:1px solid rgba(255,170,0,0.2);">Memory</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">4.29B exec · 1 PoC</span>
         </div>
       </div>
-      <div class="card">
-        <div class="card-icon" style="color:var(--accent-orange);">📊</div>
-        <h3>Reproducible Inference</h3>
-        <p>Seed-reproducible model inference with state-hash-based validation. Every output trace is verifiable.</p>
+      <div class="card reveal" data-delay="300">
+        <div class="card-icon" style="color:var(--violet);">🔒</div>
+        <h3>seL4 CDT Complementary Verification</h3>
+        <p>Independent engineering validation of formally verified seL4 microkernel CDT. 1B+ ops, 0 crashes, 123/123 tests.</p>
         <div class="card-meta">
-          <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);">RESEARCH</span>
-        </div>
-        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
-          <strong>Hypothesis:</strong> Model weights + input + seed = deterministic output hash.<br>
-          <strong>Invariant:</strong> Hash(output) is constant across identical inputs.<br>
-          <strong>Current Status:</strong> Not started.<br>
-          <strong>Evidence Needed:</strong> Cross-platform reproducibility study.
+          <span class="status-badge status-research">Kernel</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">1B+ ops · 123/123 pass</span>
         </div>
       </div>
-      <div class="card">
-        <div class="card-icon" style="color:var(--accent-blue);">🎯</div>
-        <h3>Deterministic Orchestration</h3>
-        <p>Multi-agent coordination where message passing is modeled as state transitions with ordering invariants.</p>
+      <div class="card reveal" data-delay="400">
+        <div class="card-icon" style="color:var(--cyan);">⛓️</div>
+        <h3>Rift-L1 & Rift Network</h3>
+        <p>Standalone L1 validator core and Solana on-chain protocol. SIRM invariants I1–I4. 1T+ L1 ops, 2.5B+ on-chain, 14 audit findings fixed.</p>
         <div class="card-meta">
-          <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);">RESEARCH</span>
-        </div>
-        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
-          <strong>Hypothesis:</strong> Multi-agent systems can use conflict graphs for deterministic scheduling.<br>
-          <strong>Invariant:</strong> No two conflicting agents execute simultaneously.<br>
-          <strong>Current Status:</strong> Theoretical extension of scheduler research.<br>
-          <strong>Evidence Needed:</strong> Simulation with 2+ agents.
+          <span class="status-badge" style="background:rgba(255,68,68,0.08);color:#ff4444;border:1px solid rgba(255,68,68,0.2);">Blockchain</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">1T+ ops · 14 fixed</span>
         </div>
       </div>
-      <div class="card">
-        <div class="card-icon" style="color:var(--accent-pink);">🔍</div>
-        <h3>Invariant Discovery via Learning</h3>
-        <p>Neural networks trained on execution traces to identify implicit invariants that human reviewers might miss.</p>
+      <div class="card reveal" data-delay="500">
+        <div class="card-icon" style="color:var(--pink);">🤖</div>
+        <h3>AI Research — Deterministic Agents</h3>
+        <p>Neural networks constrained by invariant-preserving execution. Every agent action is a state transition subject to SIRM checks. Conceptual framework.</p>
         <div class="card-meta">
-          <span class="status-badge" style="background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2);">RESEARCH</span>
-        </div>
-        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
-          <strong>Hypothesis:</strong> Execution traces contain patterns indicating implicit invariants.<br>
-          <strong>Invariant:</strong> Discovered invariants are validated against fuzz corpus.<br>
-          <strong>Current Status:</strong> Literature review on invariant mining.<br>
-          <strong>Evidence Needed:</strong> Corpus of traces + classifier accuracy.
+          <span class="status-badge status-research">AI</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">Conceptual · No artifacts</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="timeline" style="background:rgba(255,255,255,0.01);">
+<section class="section" id="timeline" style="background:rgba(255,255,255,0.003);">
   <div class="container">
-    <div class="section-header">
+    <div class="section-header reveal">
       <span class="section-label">History</span>
       <h2 class="section-title">Research Timeline</h2>
       <p class="section-desc">From first principles to production systems. A trace of verifiable milestones.</p>
     </div>
     <div class="timeline">
-      <div class="timeline-item completed">
-        <div class="timeline-date">2026 Q2 — Foundation <span class="timeline-status" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">COMPLETED</span></div>
+      <div class="timeline-item completed reveal" data-delay="0">
+        <div class="timeline-date">2026 Q2 — Foundation <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
         <h4>RFT-SIRM Laboratory Established</h4>
         <p>Initial formulation of Stable Invariant Rift Model. First mathematical proofs of I1-I4 constraints. Repository structure and CI pipeline.</p>
       </div>
-      <div class="timeline-item completed">
-        <div class="timeline-date">2026 Q2 — Verification <span class="timeline-status" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">COMPLETED</span></div>
+      <div class="timeline-item completed reveal" data-delay="100">
+        <div class="timeline-date">2026 Q2 — Verification <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
         <h4>First Fuzzing Campaign</h4>
         <p>libFuzzer integration with structured state-machine inputs. 100M+ executions in first month. Zero invariant violations. Differential validation framework between Python and Rust.</p>
       </div>
-      <div class="timeline-item completed">
-        <div class="timeline-date">2026 Q3 — seL4 <span class="timeline-status" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">COMPLETED</span></div>
+      <div class="timeline-item completed reveal" data-delay="200">
+        <div class="timeline-date">2026 Q3 — seL4 <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
         <h4>Kernel Complementary Verification</h4>
         <p>Independent validation of seL4 CDT. 1B+ operations, 0 crashes. Post-marathon test suite: 123/123 passed. First external research collaboration.</p>
       </div>
-      <div class="timeline-item completed">
-        <div class="timeline-date">2026 Q3 — DeFi <span class="timeline-status" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">COMPLETED</span></div>
+      <div class="timeline-item completed reveal" data-delay="300">
+        <div class="timeline-date">2026 Q3 — DeFi <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
         <h4>Aave V4 Hub Model Review</h4>
         <p>Deterministic fuzzing of Aave V4 Hub invariant model. 184K operations, 0 violations. Complementary to Certora formal verification. Published methodology.</p>
       </div>
-      <div class="timeline-item completed">
-        <div class="timeline-date">2026 Q4 — Scheduler <span class="timeline-status" style="background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2);">COMPLETED</span></div>
+      <div class="timeline-item completed reveal" data-delay="400">
+        <div class="timeline-date">2026 Q4 — Scheduler <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
         <h4>Conflict-Aware Scheduling</h4>
         <p>Agave banking_stage scheduler with contention graph analysis. 91M exec/run. Upstream issue #14274 filed. Permission rollback memory contexts.</p>
       </div>
-      <div class="timeline-item active">
-        <div class="timeline-date">2026 Q4 — Network <span class="timeline-status" style="background:rgba(0,229,255,0.1);color:#00e5ff;border:1px solid rgba(0,229,255,0.2);">ACTIVE</span></div>
+      <div class="timeline-item active reveal" data-delay="500">
+        <div class="timeline-date">2026 Q4 — Network <span style="background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,240,255,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">ACTIVE</span></div>
         <h4>Rift Network Audit Complete</h4>
         <p>14 security findings addressed. 2.5B+ fuzz runs. Rift-L1 standalone validator core: 1T+ operations, 0 invariant violations.</p>
       </div>
-      <div class="timeline-item planned">
-        <div class="timeline-date">2026 Q4 — Formal <span class="timeline-status" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.15);">PLANNED</span></div>
+      <div class="timeline-item planned reveal" data-delay="600">
+        <div class="timeline-date">2026 Q4 — Formal <span style="background:rgba(255,255,255,0.02);color:var(--text-muted);border:1px solid var(--border-subtle);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">PLANNED</span></div>
         <h4>TLA+ Specifications</h4>
         <p>Machine-checked proofs of critical invariants in TLA+. Coq development for core state transition properties. Target: fully verified execution path.</p>
       </div>
-      <div class="timeline-item planned">
-        <div class="timeline-date">2026 Q4 — Scale <span class="timeline-status" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.15);">PLANNED</span></div>
+      <div class="timeline-item planned reveal" data-delay="700">
+        <div class="timeline-date">2026 Q4 — Scale <span style="background:rgba(255,255,255,0.02);color:var(--text-muted);border:1px solid var(--border-subtle);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">PLANNED</span></div>
         <h4>High-Assurance Infrastructure</h4>
         <p>Kernel-agnostic deployment. Critical computing environments. Additional verified kernels beyond seL4. Production-ready validator network.</p>
       </div>
@@ -1819,173 +1117,56 @@ footer {
   </div>
 </section>
 
-<section class="section" id="glossary">
+<section class="section" id="metrics">
   <div class="container">
-    <div class="section-header">
-      <span class="section-label">Reference</span>
-      <h2 class="section-title">Glossary 2.0</h2>
-      <p class="section-desc">Precise definitions for terms used throughout the RFT-SIRM ecosystem. Click to expand.</p>
+    <div class="section-header reveal">
+      <span class="section-label">Aggregate</span>
+      <h2 class="section-title">Laboratory Metrics</h2>
+      <p class="section-desc">Cross-system totals. Every number traced to its source.</p>
     </div>
-    <div class="glossary-grid">
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">SIRM <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Stable Invariant Rift Model — the mathematical core enforcing four hard constraints (I1-I4) after every state transition.</div>
-        <div class="glossary-detail">
-          <strong>Full name:</strong> Stable Invariant Rift Model<br>
-          <strong>Type:</strong> Mathematical framework<br>
-          <strong>Constraints:</strong> I1 Supply Conservation, I2 Mint/Burn Accounting, I3 Dust Bound, I4 Debt Limit<br>
-          <strong>Property:</strong> Every state transition is rejected if any invariant is violated.<br>
-          <strong>First defined:</strong> 2026 Q2, RFT-SIRM Laboratory
-        </div>
+    <div class="metrics-grid">
+      <div class="metric-card reveal" data-delay="0">
+        <div class="metric-value" data-count="6920000000000">6.9T+</div>
+        <div class="metric-label">Total Operations Fuzzed</div>
       </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Invariant <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">A predicate over state that must hold before and after every transition. In RFT-SIRM, invariants are hard constraints: violation returns Err, not panic.</div>
-        <div class="glossary-detail">
-          <strong>Types:</strong> Safety, conservation, monotonic, bounded, temporal<br>
-          <strong>Enforcement:</strong> Hard constraint — operation rejected on violation<br>
-          <strong>Contrast:</strong> Soft invariant = warning; Hard invariant = rejection<br>
-          <strong>Example:</strong> <code>total_supply = total_minted - total_burned</code>
-        </div>
+      <div class="metric-card reveal" data-delay="100">
+        <div class="metric-value" data-count="0">0</div>
+        <div class="metric-label">Invariant Violations</div>
       </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">State Machine <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Deterministic automaton where every operation is a total function from state to state. Same inputs always produce same outputs.</div>
-        <div class="glossary-detail">
-          <strong>Property:</strong> Deterministic — no randomness in transition function<br>
-          <strong>Property:</strong> Total — defined for all valid inputs<br>
-          <strong>Transition:</strong> <code>S(t+1) = T(S(t), op(t))</code><br>
-          <strong>Verification:</strong> Hash(S_final) = deterministic(seed, ops[])
-        </div>
+      <div class="metric-card reveal" data-delay="200">
+        <div class="metric-value" data-count="6">6</div>
+        <div class="metric-label">Systems Verified</div>
       </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Deterministic Execution <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Given the same initial state and operation sequence, the system always produces the identical final state and hash. No randomness in critical paths.</div>
-        <div class="glossary-detail">
-          <strong>Requirement:</strong> Seed-reproducible testing<br>
-          <strong>Benefit:</strong> Differential validation between implementations<br>
-          <strong>Scope:</strong> Core state transitions; networking is explicitly out of scope<br>
-          <strong>Tool:</strong> libFuzzer with structured inputs
-        </div>
+      <div class="metric-card reveal" data-delay="300">
+        <div class="metric-value" data-count="14">14</div>
+        <div class="metric-label">Security Findings Fixed</div>
       </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Deterministic Replay <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Given seed + operations[], the system reproduces the exact state trace. Enables bug reproduction and differential validation.</div>
-        <div class="glossary-detail">
-          <strong>Formula:</strong> <code>seed + ops[] → S_final → Hash</code><br>
-          <strong>Use:</strong> Regression testing, audit trails, differential validation<br>
-          <strong>Requirement:</strong> No non-determinism in transition function<br>
-          <strong>Repository:</strong> All RFT-SIRM fuzz harnesses
-        </div>
+      <div class="metric-card reveal" data-delay="400">
+        <div class="metric-value" data-count="123">123</div>
+        <div class="metric-label">seL4 Tests Passed</div>
       </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Differential Validation <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Comparing state hashes between two implementations (e.g., Python vs Rust) to prove equivalence under a test corpus.</div>
-        <div class="glossary-detail">
-          <strong>Method:</strong> <code>Hash_python(S_t) == Hash_rust(S_t)</code><br>
-          <strong>Scope:</strong> Same seed, same ops, same initial state<br>
-          <strong>Limitation:</strong> Proves equivalence under corpus, not formal proof for all inputs<br>
-          <strong>Used in:</strong> Rift-L1-Blockchain (Python reference vs Rust impl)
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">State Hash <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Cryptographic hash of the entire protocol state. Used for differential validation and replay verification.</div>
-        <div class="glossary-detail">
-          <strong>Input:</strong> All state variables (global_field, total_base_sum, participants, etc.)<br>
-          <strong>Property:</strong> Any state change produces different hash<br>
-          <strong>Use:</strong> Detect divergence between implementations<br>
-          <strong>Algorithm:</strong> Deterministic serialization + hash function
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">O(1) Distribution <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Updating a global scalar field changes every participant's effective balance simultaneously, regardless of participant count.</div>
-        <div class="glossary-detail">
-          <strong>Standard:</strong> <code>for i in 0..N: balance[i] += reward/N</code> → O(N)<br>
-          <strong>Rift:</strong> <code>global_field += reward/p</code> → O(1)<br>
-          <strong>Effective balance:</strong> <code>base_balance[i] + global_field</code><br>
-          <strong>Trade-off:</strong> Reading individual balance requires addition; no free lunch
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">RAY <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Fixed-point arithmetic with 27 decimal places (10²⁷). Used in Aave V4 Hub and DeFi invariant models.</div>
-        <div class="glossary-detail">
-          <strong>Value:</strong> RAY = 1,000,000,000,000,000,000,000,000,000<br>
-          <strong>Rounding:</strong> Explicit directional — ray_mul_up, ray_mul_down, ray_div_up, ray_div_down<br>
-          <strong>No half-up:</strong> Only floor and ceiling modes<br>
-          <strong>Used in:</strong> Aave V4 Hub model review
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">CPI <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Cross-Program Invocation — the mechanism by which Solana programs call other programs. Requires careful memory isolation.</div>
-        <div class="glossary-detail">
-          <strong>Full name:</strong> Cross-Program Invocation<br>
-          <strong>Risk:</strong> Writable permission leakage in nested calls<br>
-          <strong>Mitigation:</strong> Per-frame permission rollback (ABIv2 research)<br>
-          <strong>Upstream:</strong> svm#25 (closed, PoC-only finding)
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Conflict Graph <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">A graph where nodes are transactions and edges represent shared state access. Used for parallel batch scheduling.</div>
-        <div class="glossary-detail">
-          <strong>Nodes:</strong> Transactions<br>
-          <strong>Edges:</strong> Shared writable account access<br>
-          <strong>Use:</strong> Independent set extraction for parallel execution<br>
-          <strong>Research:</strong> agave-rift-scheduler, upstream #14274
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Capability Derivation Tree <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">The formally verified subcomponent of the seL4 microkernel handling capability relationships.</div>
-        <div class="glossary-detail">
-          <strong>Context:</strong> seL4 microkernel<br>
-          <strong>Property:</strong> Formally proven correct (seL4 proof)<br>
-          <strong>RFT-SIRM work:</strong> Complementary engineering validation via fuzzing<br>
-          <strong>Result:</strong> 1B+ ops, 0 crashes, 123/123 tests passed
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Fuzz Corpus <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Collection of seed inputs that maximize code coverage. Used for continuous invariant verification.</div>
-        <div class="glossary-detail">
-          <strong>Generator:</strong> libFuzzer with structured state-machine inputs<br>
-          <strong>Coverage:</strong> ~2,661 features, ~436 corpus entries (scheduler)<br>
-          <strong>Stabilization:</strong> Typically within first 100K executions<br>
-          <strong>CI:</strong> 5h 55m runs on every push
-        </div>
-      </div>
-      <div class="glossary-item" onclick="toggleGlossary(this)">
-        <div class="glossary-term">Formal Verification <span style="font-size:0.8rem;color:var(--text-muted);">+</span></div>
-        <div class="glossary-def">Mathematical proof that a system satisfies its specification. Contrasts with testing, which only samples behavior.</div>
-        <div class="glossary-detail">
-          <strong>Current status (RFT-SIRM):</strong> Planned (TLA+, Coq)<br>
-          <strong>Complementary:</strong> Fuzzing increases confidence but does not prove correctness<br>
-          <strong>Target:</strong> Machine-checked proofs of I1–I4<br>
-          <strong>Timeline:</strong> 2026 Q4 planned
-        </div>
+      <div class="metric-card reveal" data-delay="500">
+        <div class="metric-value" data-count="5">5</div>
+        <div class="metric-label">Verification Layers</div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="contact" style="background:rgba(255,255,255,0.01);">
+<section class="section" id="contact" style="background:rgba(255,255,255,0.003);">
   <div class="container">
-    <div class="section-header">
+    <div class="section-header reveal">
       <span class="section-label">Connect</span>
       <h2 class="section-title">Contact & Resources</h2>
       <p class="section-desc">Research collaborations, security disclosures, and architectural discussions.</p>
     </div>
     <div class="contact-grid">
-      <div class="contact-info">
+      <div class="contact-info reveal" data-delay="0">
         <h3>Research Laboratory</h3>
         <p>RFT-SIRM is a deterministic invariant systems research laboratory. We collaborate on formal verification, state transition architectures, and high-assurance distributed systems.</p>
-        <p style="color:var(--text-muted);font-size:0.9rem;">All repositories are open source under Apache 2.0. Contributions, corrections, and architecture discussions are welcome.</p>
+        <p style="color:var(--text-muted);font-size:0.95rem;">All repositories are open source under Apache 2.0. Contributions, corrections, and architecture discussions are welcome.</p>
       </div>
-      <div class="contact-links">
+      <div class="contact-links reveal" data-delay="200">
         <a href="https://github.com/RFT-SIRM" class="contact-link" target="_blank" rel="noopener">
           <div class="contact-link-icon">⚡</div>
           <div class="contact-link-text">
@@ -2019,6 +1200,7 @@ footer {
     </div>
     <div class="footer-right">
       <a href="https://github.com/RFT-SIRM" target="_blank" rel="noopener">GitHub</a>
+      <a href="matrix.html">Verification Matrix</a>
       <a href="#lab" data-scroll>Top</a>
     </div>
   </div>
@@ -2027,181 +1209,250 @@ footer {
 <div class="visitor-counter" id="visitor-counter">VISITORS: <span id="gc-count">...</span></div>
 
 <script>
-// =====================
-// MATRIX RAIN (Multi-color, restored)
-// =====================
-const matrixCanvas = document.getElementById('matrix-canvas');
-const matrixCtx = matrixCanvas.getContext('2d');
-let matrixW, matrixH;
-function resizeMatrix() {
-  matrixW = matrixCanvas.width = window.innerWidth;
-  matrixH = matrixCanvas.height = window.innerHeight;
-}
-resizeMatrix();
-window.addEventListener('resize', resizeMatrix);
+// ===== THREE.JS BACKGROUND =====
+(function() {
+  const canvas = document.getElementById('webgl-canvas');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-const symbols = '∑∏∫∂∆∇∈⊂∀∃¬∧∨⇒⇔⊢⊕⊗∞∴∵∼≈≠≤≥0123456789';
-const mColors = ['#00e5ff', '#4488ff', '#00e676', '#e040fb', '#ff4081'];
-const fontSize = 14;
-const mColumns = [];
+  // Particle system
+  const particleCount = 300;
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+  const sizes = new Float32Array(particleCount);
+  const velocities = [];
 
-function initMatrix() {
-  const colCount = Math.ceil(matrixW / fontSize);
-  mColumns.length = 0;
-  for (let i = 0; i < colCount; i++) {
-    mColumns.push({
-      x: i * fontSize,
-      y: Math.random() * matrixH,
-      speed: 1 + Math.random() * 2,
-      color: mColors[Math.floor(Math.random() * mColors.length)],
-      chars: []
+  const colorPalette = [
+    new THREE.Color(0x00f0ff),
+    new THREE.Color(0xc040ff),
+    new THREE.Color(0x00ff88),
+    new THREE.Color(0xffaa00),
+    new THREE.Color(0x4488ff)
+  ];
+
+  for (let i = 0; i < particleCount; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 40;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 40;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+
+    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+
+    sizes[i] = Math.random() * 2 + 0.5;
+
+    velocities.push({
+      x: (Math.random() - 0.5) * 0.01,
+      y: (Math.random() - 0.5) * 0.01,
+      z: (Math.random() - 0.5) * 0.005
     });
   }
-}
-initMatrix();
-window.addEventListener('resize', initMatrix);
 
-function drawMatrix() {
-  matrixCtx.fillStyle = 'rgba(12, 12, 24, 0.08)';
-  matrixCtx.fillRect(0, 0, matrixW, matrixH);
-  matrixCtx.font = fontSize + 'px "JetBrains Mono", monospace';
-  mColumns.forEach(col => {
-    const char = symbols[Math.floor(Math.random() * symbols.length)];
-    matrixCtx.fillStyle = col.color;
-    matrixCtx.fillText(char, col.x, col.y);
-    col.y += col.speed;
-    if (col.y > matrixH) {
-      col.y = -fontSize;
-      col.color = mColors[Math.floor(Math.random() * mColors.length)];
-      col.speed = 1 + Math.random() * 2;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.15,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+
+  const particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+
+  // Wireframe spheres (orbital rings)
+  const sphereGroup = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const sphereGeo = new THREE.IcosahedronGeometry(3 + i * 2, 1);
+    const sphereMat = new THREE.MeshBasicMaterial({
+      color: colorPalette[i],
+      wireframe: true,
+      transparent: true,
+      opacity: 0.06
+    });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.rotation.x = Math.random() * Math.PI;
+    sphere.rotation.y = Math.random() * Math.PI;
+    sphereGroup.add(sphere);
+  }
+  scene.add(sphereGroup);
+
+  // Connection lines between nearby particles
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: 0x00f0ff,
+    transparent: true,
+    opacity: 0.03
+  });
+
+  camera.position.z = 15;
+
+  let mouseX = 0, mouseY = 0;
+  let targetMouseX = 0, targetMouseY = 0;
+
+  document.addEventListener('mousemove', (e) => {
+    targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.005;
+
+    mouseX += (targetMouseX - mouseX) * 0.05;
+    mouseY += (targetMouseY - mouseY) * 0.05;
+
+    const posArray = geometry.attributes.position.array;
+    for (let i = 0; i < particleCount; i++) {
+      posArray[i * 3] += velocities[i].x + Math.sin(time + i) * 0.002;
+      posArray[i * 3 + 1] += velocities[i].y + Math.cos(time + i * 0.5) * 0.002;
+      posArray[i * 3 + 2] += velocities[i].z;
+
+      // Wrap around
+      if (posArray[i * 3] > 20) posArray[i * 3] = -20;
+      if (posArray[i * 3] < -20) posArray[i * 3] = 20;
+      if (posArray[i * 3 + 1] > 20) posArray[i * 3 + 1] = -20;
+      if (posArray[i * 3 + 1] < -20) posArray[i * 3 + 1] = 20;
+      if (posArray[i * 3 + 2] > 15) posArray[i * 3 + 2] = -15;
+      if (posArray[i * 3 + 2] < -15) posArray[i * 3 + 2] = 15;
+    }
+    geometry.attributes.position.needsUpdate = true;
+
+    particles.rotation.y = time * 0.1;
+    particles.rotation.x = mouseY * 0.1;
+
+    sphereGroup.children.forEach((sphere, i) => {
+      sphere.rotation.x += 0.001 * (i + 1);
+      sphere.rotation.y += 0.002 * (i + 1);
+      sphere.rotation.z += 0.0005 * (i + 1);
+    });
+    sphereGroup.rotation.y = mouseX * 0.2;
+    sphereGroup.rotation.x = mouseY * 0.1;
+
+    camera.position.x = mouseX * 2;
+    camera.position.y = -mouseY * 2;
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+// ===== AUDIO SYSTEM =====
+(function() {
+  let audioCtx = null;
+  let isPlaying = false;
+  let oscillators = [];
+  let gainNodes = [];
+  let intervalId = null;
+
+  const toggle = document.getElementById('audio-toggle');
+
+  function createAmbientSound() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Create 3 oscillators for ambient drone
+    const freqs = [55, 82.5, 110]; // A1, E2, A2
+    freqs.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+      filter.Q.value = 1;
+
+      gain.gain.value = 0;
+      gain.gain.linearRampToValueAtTime(0.015, audioCtx.currentTime + 2);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+
+      oscillators.push(osc);
+      gainNodes.push(gain);
+    });
+
+    // Random ambient notes
+    intervalId = setInterval(() => {
+      if (!isPlaying) return;
+      const note = 110 + Math.random() * 440;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = note;
+      gain.gain.value = 0;
+      gain.gain.linearRampToValueAtTime(0.008, audioCtx.currentTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 2);
+    }, 4000 + Math.random() * 4000);
+  }
+
+  function stopAmbientSound() {
+    gainNodes.forEach(g => {
+      g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+    });
+    setTimeout(() => {
+      oscillators.forEach(o => o.stop());
+      oscillators = [];
+      gainNodes = [];
+      if (intervalId) clearInterval(intervalId);
+    }, 1000);
+  }
+
+  toggle.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    toggle.classList.toggle('active', isPlaying);
+    toggle.textContent = isPlaying ? '🔊' : '🔇';
+    if (isPlaying) {
+      createAmbientSound();
+    } else {
+      stopAmbientSound();
     }
   });
-  requestAnimationFrame(drawMatrix);
-}
-drawMatrix();
 
-// =====================
-// PARTICLE NETWORK
-// =====================
-const pCanvas = document.getElementById('particle-canvas');
-const pCtx = pCanvas.getContext('2d');
-let pW, pH;
-function resizeParticles() {
-  pW = pCanvas.width = window.innerWidth;
-  pH = pCanvas.height = window.innerHeight;
-}
-resizeParticles();
-window.addEventListener('resize', resizeParticles);
-
-const particles = [];
-const particleCount = 90;
-const connectionDistance = 120;
-const mouseRadius = 150;
-const pColors = ['#00e5ff', '#4488ff', '#00e676', '#e040fb', '#ff4081'];
-
-class Particle {
-  constructor() {
-    this.x = Math.random() * pW;
-    this.y = Math.random() * pH;
-    this.vx = (Math.random() - 0.5) * 0.5;
-    this.vy = (Math.random() - 0.5) * 0.5;
-    this.radius = 1.5 + Math.random() * 2;
-    this.color = pColors[Math.floor(Math.random() * pColors.length)];
-  }
-  update(mouseX, mouseY) {
-    this.x += this.vx;
-    this.y += this.vy;
-    if (this.x < 0 || this.x > pW) this.vx *= -1;
-    if (this.y < 0 || this.y > pH) this.vy *= -1;
-    if (mouseX !== null && mouseY !== null) {
-      const dx = mouseX - this.x;
-      const dy = mouseY - this.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < mouseRadius) {
-        const force = (mouseRadius - dist) / mouseRadius;
-        this.vx -= (dx / dist) * force * 0.3;
-        this.vy -= (dy / dist) * force * 0.3;
-      }
-    }
-  }
-  draw() {
-    pCtx.beginPath();
-    pCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    pCtx.fillStyle = this.color;
-    pCtx.fill();
-  }
-}
-
-for (let i = 0; i < particleCount; i++) {
-  particles.push(new Particle());
-}
-
-let mouseX = null, mouseY = null;
-document.addEventListener('mousemove', e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
-document.addEventListener('mouseleave', () => {
-  mouseX = null;
-  mouseY = null;
-});
-
-function drawParticles() {
-  pCtx.clearRect(0, 0, pW, pH);
-  particles.forEach(p => {
-    p.update(mouseX, mouseY);
-    p.draw();
+  // Hover sound effects
+  document.querySelectorAll('.pipe-step, .card, .evidence-card, .metric-card, .contact-link').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      if (!isPlaying || !audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 440 + Math.random() * 220;
+      gain.gain.value = 0;
+      gain.gain.linearRampToValueAtTime(0.005, audioCtx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    });
   });
-  for (let i = 0; i < particles.length; i++) {
-    for (let j = i + 1; j < particles.length; j++) {
-      const dx = particles[i].x - particles[j].x;
-      const dy = particles[i].y - particles[j].y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < connectionDistance) {
-        const opacity = (1 - dist / connectionDistance) * 0.2;
-        pCtx.beginPath();
-        pCtx.moveTo(particles[i].x, particles[i].y);
-        pCtx.lineTo(particles[j].x, particles[j].y);
-        pCtx.strokeStyle = `rgba(0, 229, 255, ${opacity})`;
-        pCtx.lineWidth = 0.5;
-        pCtx.stroke();
-      }
-    }
-  }
-  requestAnimationFrame(drawParticles);
-}
-drawParticles();
+})();
 
-// =====================
-// CUSTOM CURSOR
-// =====================
-const cursorDot = document.getElementById('cursor-dot');
-const cursorRing = document.getElementById('cursor-ring');
-let cursorX = 0, cursorY = 0;
-let ringX = 0, ringY = 0;
-
-document.addEventListener('mousemove', e => {
-  cursorX = e.clientX;
-  cursorY = e.clientY;
-});
-
-function animateCursor() {
-  cursorDot.style.transform = `translate(${cursorX - 4}px, ${cursorY - 4}px)`;
-  ringX += (cursorX - ringX) * 0.15;
-  ringY += (cursorY - ringY) * 0.15;
-  cursorRing.style.transform = `translate(${ringX - 20}px, ${ringY - 20}px)`;
-  requestAnimationFrame(animateCursor);
-}
-animateCursor();
-
-document.querySelectorAll('a, button, .card, .metric-card, .inv-card, .evidence-card, .claim-item, .glossary-item, .contact-link, .arch-node, .sirm-node, .pipe-step').forEach(el => {
-  el.addEventListener('mouseenter', () => cursorRing.classList.add('hover'));
-  el.addEventListener('mouseleave', () => cursorRing.classList.remove('hover'));
-});
-
-// =====================
-// NAVIGATION
-// =====================
+// ===== NAVIGATION =====
 const navbar = document.getElementById('navbar');
 window.addEventListener('scroll', () => {
   navbar.classList.toggle('scrolled', window.scrollY > 50);
@@ -2213,9 +1464,7 @@ document.querySelectorAll('a[data-scroll]').forEach(link => {
     const targetId = this.getAttribute('href');
     if (targetId && targetId.startsWith('#')) {
       const target = document.querySelector(targetId);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth' });
-      }
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
     }
   });
 });
@@ -2231,129 +1480,79 @@ window.addEventListener('scroll', () => {
   let current = '';
   sections.forEach(section => {
     const sectionTop = section.offsetTop - 100;
-    if (window.scrollY >= sectionTop) {
-      current = section.getAttribute('id');
-    }
+    if (window.scrollY >= sectionTop) current = section.getAttribute('id');
   });
   navLinks.forEach(link => {
     link.classList.remove('active');
-    if (link.getAttribute('href') === '#' + current) {
-      link.classList.add('active');
-    }
+    if (link.getAttribute('href') === '#' + current) link.classList.add('active');
   });
 });
 
-// =====================
-// PIPELINE INTERACTION
-// =====================
+// ===== PIPELINE =====
 const pipelineData = {
-  claim: '<strong style="color:#00e5ff;">CLAIM</strong> — A technical assertion about system behavior. Example: "SIRM I1–I4 hold across all state transitions." Claims are never assumed true without evidence.',
+  claim: '<strong style="color:#00f0ff;">CLAIM</strong> — A technical assertion about system behavior. Example: "SIRM I1–I4 hold across all state transitions." Claims are never assumed true without evidence.',
   model: '<strong style="color:#4488ff;">MODEL</strong> — Mathematical formalization of the claim. State variables, transition function, invariant predicates. SIRM defines S = {global_field, total_base_sum, ...} with T: S × op → S.',
-  exec: '<strong style="color:#e040fb;">EXECUTION</strong> — Implementation in code. Rust core with checked arithmetic. Python reference model for differential validation. Every line of execution code is traceable to a model element.',
-  verify: '<strong style="color:#00e676;">VERIFICATION</strong> — Multi-layer validation: static analysis (L1), engineering tests (L2), deterministic fuzzing (L3), kernel validation (L3b), DeFi model fuzz (L3c), formal methods (L4 — planned).',
-  evidence: '<strong style="color:#ffab40;">EVIDENCE</strong> — Reproducible artifacts: repository, commit hash, harness configuration, seed, execution count, invariant set, result, limitation. Every number has provenance.',
-  repro: '<strong style="color:#ff5252;">REPRODUCTION</strong> — Given source commit + environment + seed + operation corpus, any third party can reproduce the exact state trace and hash. This is the final standard of scientific computing.'
+  exec: '<strong style="color:#c040ff;">EXECUTION</strong> — Implementation in code. Rust core with checked arithmetic. Python reference model for differential validation. Every line of execution code is traceable to a model element.',
+  verify: '<strong style="color:#00ff88;">VERIFICATION</strong> — Multi-layer validation: static analysis (L1), engineering tests (L2), deterministic fuzzing (L3), kernel validation (L3b), DeFi model fuzz (L3c), formal methods (L4 — planned).',
+  evidence: '<strong style="color:#ffaa00;">EVIDENCE</strong> — Reproducible artifacts: repository, commit hash, harness configuration, seed, execution count, invariant set, result, limitation. Every number has provenance.',
+  repro: '<strong style="color:#ff4444;">REPRODUCTION</strong> — Given source commit + environment + seed + operation corpus, any third party can reproduce the exact state trace and hash. This is the final standard of scientific computing.'
 };
-
 document.querySelectorAll('.pipe-step').forEach(step => {
   step.addEventListener('click', () => {
     const key = step.getAttribute('data-step');
-    document.getElementById('pipeline-detail').innerHTML = pipelineData[key];
+    const detail = document.getElementById('pipeline-detail');
+    detail.style.opacity = '0';
+    setTimeout(() => {
+      detail.innerHTML = pipelineData[key];
+      detail.style.opacity = '1';
+    }, 200);
   });
 });
 
-// =====================
-// SIRM HOVER
-// =====================
-document.querySelectorAll('.sirm-node').forEach(node => {
-  node.addEventListener('mouseenter', () => {
-    document.getElementById('sirm-detail').innerHTML = node.getAttribute('data-info');
-  });
-});
-
-// =====================
-// INVARIANT TOGGLE
-// =====================
-function toggleInv(card) {
-  const detail = card.querySelector('.inv-detail');
-  const summary = card.querySelector('.inv-summary');
-  if (detail.style.display === 'block') {
-    detail.style.display = 'none';
-    summary.style.display = 'block';
-  } else {
-    detail.style.display = 'block';
-    summary.style.display = 'none';
-  }
-}
-
-// =====================
-// CLAIMS FILTER
-// =====================
+// ===== CLAIMS FILTER =====
 function filterClaims(status) {
   const items = document.querySelectorAll('.claim-item');
   items.forEach(item => {
-    if (status === 'all' || item.getAttribute('data-status') === status) {
-      item.style.display = 'grid';
-    } else {
-      item.style.display = 'none';
-    }
+    item.style.display = (status === 'all' || item.getAttribute('data-status') === status) ? 'grid' : 'none';
   });
   document.querySelectorAll('.claims-filter button').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.textContent.toLowerCase().includes(status) || (status === 'all' && btn.textContent === 'All')) {
+    const btnText = btn.textContent.toLowerCase();
+    if ((status === 'all' && btnText.includes('all')) || btnText.includes(status)) {
       btn.classList.add('active');
     }
   });
 }
 
-// =====================
-// GLOSSARY TOGGLE
-// =====================
-function toggleGlossary(item) {
-  const detail = item.querySelector('.glossary-detail');
-  const plus = item.querySelector('.glossary-term span');
-  if (detail.style.display === 'block') {
-    detail.style.display = 'none';
-    plus.textContent = '+';
-  } else {
-    detail.style.display = 'block';
-    plus.textContent = '−';
-  }
-}
-
-// =====================
-// ANIMATED COUNTERS
-// =====================
+// ===== ANIMATED COUNTERS =====
 const counters = document.querySelectorAll('.metric-value[data-count]');
 const counterObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       const el = entry.target;
       const target = parseInt(el.getAttribute('data-count'));
-      const duration = 2000;
+      const duration = 2500;
       const start = performance.now();
       function update(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
+        const ease = 1 - Math.pow(1 - progress, 4);
         const current = Math.floor(ease * target);
-        if (target >= 1000000000) {
+        if (target >= 1000000000000) {
+          el.textContent = (current / 1000000000000).toFixed(1) + 'T+';
+        } else if (target >= 1000000000) {
           el.textContent = (current / 1000000000).toFixed(1) + 'B+';
         } else if (target >= 1000000) {
           el.textContent = (current / 1000000).toFixed(0) + 'M+';
         } else {
           el.textContent = current.toLocaleString();
         }
-        if (progress < 1) {
-          requestAnimationFrame(update);
-        } else {
-          if (target >= 1000000000) {
-            el.textContent = (target / 1000000000).toFixed(1) + 'B+';
-          } else if (target >= 1000000) {
-            el.textContent = (target / 1000000).toFixed(0) + 'M+';
-          } else {
-            el.textContent = target.toLocaleString();
-          }
+        if (progress < 1) requestAnimationFrame(update);
+        else {
+          if (target >= 1000000000000) el.textContent = (target / 1000000000000).toFixed(1) + 'T+';
+          else if (target >= 1000000000) el.textContent = (target / 1000000000).toFixed(1) + 'B+';
+          else if (target >= 1000000) el.textContent = (target / 1000000).toFixed(0) + 'M+';
+          else el.textContent = target.toLocaleString();
         }
       }
       requestAnimationFrame(update);
@@ -2363,18 +1562,32 @@ const counterObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.5 });
 counters.forEach(counter => counterObserver.observe(counter));
 
-// =====================
-// PARALLAX GRID
-// =====================
-const parallaxGrid = document.getElementById('parallax-grid');
-window.addEventListener('scroll', () => {
-  const scrolled = window.scrollY;
-  parallaxGrid.style.transform = `translateY(${scrolled * 0.1}px)`;
+// ===== SCROLL REVEAL =====
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const delay = parseInt(entry.target.getAttribute('data-delay') || '0');
+      setTimeout(() => {
+        entry.target.classList.add('visible');
+      }, delay);
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ===== MOUSE TRACKING FOR CARDS =====
+document.querySelectorAll('.card, .evidence-card').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    card.style.setProperty('--mouse-x', x + '%');
+    card.style.setProperty('--mouse-y', y + '%');
+  });
 });
 
-// =====================
-// VISITOR COUNTER (GoatCounter — общий)
-// =====================
+// ===== GOATCOUNTER =====
 (function() {
   var el = document.getElementById('gc-count');
   if (!el) return;
