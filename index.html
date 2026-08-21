@@ -1,1601 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RFT-SIRM — Deterministic Invariant Systems Research Platform</title>
-<meta name="description" content="Public research platform for verifiable state transition architectures. Every claim traced from model to evidence.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-<style>
-:root {
-  --bg-deep: #020208;
-  --bg-primary: #060610;
-  --bg-secondary: #0c0c1a;
-  --bg-card: rgba(12, 12, 26, 0.82);
-  --bg-glass: rgba(12, 12, 26, 0.45);
-  --text-primary: #f0f0ff;
-  --text-secondary: #a0a0c8;
-  --text-muted: #505070;
-  --cyan: #00f0ff;
-  --cyan-dim: rgba(0, 240, 255, 0.12);
-  --blue: #4488ff;
-  --green: #00ff88;
-  --green-dim: rgba(0, 255, 136, 0.12);
-  --amber: #ffaa00;
-  --amber-dim: rgba(255, 170, 0, 0.12);
-  --red: #ff4444;
-  --red-dim: rgba(255, 68, 68, 0.12);
-  --violet: #c040ff;
-  --violet-dim: rgba(192, 64, 255, 0.12);
-  --pink: #ff4080;
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-hover: rgba(255, 255, 255, 0.1);
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-sans: 'Inter', sans-serif;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  font-family: var(--font-sans);
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  overflow-x: hidden;
-  min-height: 100vh;
-}
-
-/* ===== WEBGL CANVAS ===== */
-#webgl-canvas {
-  position: fixed; top: 0; left: 0;
-  width: 100%; height: 100%;
-  z-index: 0; pointer-events: none;
-}
-
-/* ===== SCANLINES ===== */
-.scanlines {
-  position: fixed; inset: 0; pointer-events: none; z-index: 2;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
-  );
-}
-
-/* ===== NOISE OVERLAY ===== */
-.noise-overlay {
-  position: fixed; inset: 0; z-index: 1; pointer-events: none;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-}
-
-/* ===== VIGNETTE ===== */
-.vignette {
-  position: fixed; inset: 0; z-index: 3; pointer-events: none;
-  background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 0%, rgba(2,2,8,0.6) 100%);
-}
-
-/* ===== NAVIGATION ===== */
-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-  padding: 1.2rem 3rem;
-  display: flex; justify-content: space-between; align-items: center;
-  background: rgba(2, 2, 8, 0.7);
-  backdrop-filter: blur(30px) saturate(1.3);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-nav.scrolled {
-  padding: 0.7rem 3rem;
-  background: rgba(2, 2, 8, 0.92);
-  border-bottom-color: rgba(0, 240, 255, 0.08);
-}
-.nav-logo {
-  font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700;
-  color: var(--text-primary); text-decoration: none;
-  display: flex; align-items: center; gap: 0.7rem;
-  position: relative;
-}
-.nav-logo::before {
-  content: ''; width: 10px; height: 10px;
-  background: var(--cyan); border-radius: 2px;
-  box-shadow: 0 0 15px var(--cyan), 0 0 30px rgba(0,240,255,0.3);
-  animation: pulseNav 2.5s ease-in-out infinite;
-}
-@keyframes pulseNav {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 15px var(--cyan), 0 0 30px rgba(0,240,255,0.3); }
-  50% { opacity: 0.6; transform: scale(0.8); box-shadow: 0 0 8px var(--cyan), 0 0 15px rgba(0,240,255,0.15); }
-}
-.nav-links { display: flex; gap: 2.2rem; list-style: none; }
-.nav-links a {
-  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500;
-  color: var(--text-secondary); text-decoration: none;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  position: relative; padding: 0.4rem 0;
-  transition: color 0.3s ease;
-}
-.nav-links a::after {
-  content: ''; position: absolute; bottom: -2px; left: 50%;
-  width: 0; height: 2px; background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan);
-  transition: all 0.3s ease;
-  transform: translateX(-50%);
-}
-.nav-links a:hover, .nav-links a.active {
-  color: var(--cyan);
-  text-shadow: 0 0 20px rgba(0,240,255,0.4);
-}
-.nav-links a:hover::after, .nav-links a.active::after {
-  width: 100%;
-}
-
-/* ===== AUDIO TOGGLE ===== */
-.audio-toggle {
-  position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 1000;
-  width: 44px; height: 44px;
-  background: var(--bg-card);
-  border: 1px solid rgba(0, 240, 255, 0.15);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  font-size: 1.1rem;
-  color: var(--text-muted);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(15px);
-}
-.audio-toggle:hover {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 20px rgba(0,240,255,0.15);
-}
-.audio-toggle.active {
-  color: var(--cyan);
-  border-color: var(--cyan);
-  box-shadow: 0 0 20px rgba(0,240,255,0.2);
-  animation: pulseNav 2s ease-in-out infinite;
-}
-
-/* ===== HERO ===== */
-.hero {
-  position: relative; min-height: 100vh;
-  display: flex; flex-direction: column;
-  justify-content: center; align-items: center;
-  text-align: center; padding: 10rem 2rem 5rem; z-index: 10;
-  perspective: 1000px;
-}
-.hero-badge {
-  display: inline-flex; align-items: center; gap: 0.6rem;
-  padding: 0.5rem 1.2rem;
-  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(192,64,255,0.08));
-  border: 1px solid rgba(0, 240, 255, 0.15);
-  border-radius: 100px;
-  font-family: var(--font-mono); font-size: 0.7rem;
-  color: var(--cyan); letter-spacing: 0.15em; text-transform: uppercase;
-  margin-bottom: 2.5rem;
-  backdrop-filter: blur(10px);
-  animation: badgeFloat 3s ease-in-out infinite;
-}
-@keyframes badgeFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-.hero-badge::before {
-  content: ''; width: 6px; height: 6px;
-  background: var(--cyan); border-radius: 50%;
-  box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0,240,255,0.3);
-  animation: pulseNav 2s ease-in-out infinite;
-}
-.hero h1 {
-  font-size: clamp(2.8rem, 7vw, 6rem); font-weight: 900;
-  line-height: 1.05; letter-spacing: -0.04em;
-  margin-bottom: 1.5rem; max-width: 1000px;
-}
-.hero h1 .line1 {
-  display: block;
-  background: linear-gradient(135deg, #fff 0%, #c0c0ff 30%, var(--cyan) 60%, var(--violet) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 40px rgba(0,240,255,0.15));
-}
-.hero h1 .line2 {
-  display: block; font-size: 0.5em; font-weight: 300;
-  color: var(--text-secondary); margin-top: 0.4em; letter-spacing: 0.05em;
-  font-family: var(--font-mono);
-}
-.hero-subtitle {
-  font-size: clamp(1rem, 2.2vw, 1.3rem);
-  color: var(--text-secondary); max-width: 680px;
-  line-height: 1.8; margin-bottom: 3.5rem;
-}
-
-/* ===== PIPELINE ===== */
-.pipeline-container {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem;
-  margin-bottom: 2rem;
-  transform-style: preserve-3d;
-}
-.pipe-step {
-  padding: 0.7rem 1.4rem;
-  background: var(--bg-card);
-  border: 1.5px solid;
-  border-radius: 10px;
-  font-family: var(--font-mono); font-size: 0.72rem;
-  font-weight: 600; cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative; overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-.pipe-step::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.03), transparent);
-  opacity: 0; transition: opacity 0.3s ease;
-}
-.pipe-step:hover::before { opacity: 1; }
-.pipe-step:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 30px currentColor;
-}
-.pipe-arrow {
-  color: var(--text-muted); align-self: center; font-size: 1.2rem;
-  animation: arrowPulse 2s ease-in-out infinite;
-}
-@keyframes arrowPulse {
-  0%, 100% { opacity: 0.3; transform: translateX(0); }
-  50% { opacity: 0.8; transform: translateX(3px); }
-}
-#pipeline-detail {
-  min-height: 100px; padding: 1.8rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px; max-width: 750px;
-  margin: 0 auto 3rem; text-align: left;
-  font-size: 0.88rem; color: var(--text-secondary);
-  line-height: 1.8; backdrop-filter: blur(20px);
-  transition: all 0.4s ease;
-}
-#pipeline-detail:hover {
-  border-color: rgba(0, 240, 255, 0.1);
-  box-shadow: 0 0 40px rgba(0,240,255,0.05);
-}
-
-/* ===== MATRIX LINK ===== */
-.matrix-link {
-  display: inline-flex; align-items: center; gap: 0.8rem;
-  padding: 1.1rem 2.2rem;
-  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(192,64,255,0.1));
-  border: 1px solid rgba(0, 240, 255, 0.2);
-  border-radius: 14px;
-  color: var(--text-primary); text-decoration: none;
-  font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: 2rem;
-  position: relative; overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-.matrix-link::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(0,240,255,0.05), rgba(192,64,255,0.05));
-  opacity: 0; transition: opacity 0.3s ease;
-}
-.matrix-link:hover::before { opacity: 1; }
-.matrix-link:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 0 50px rgba(0,240,255,0.12), 0 0 100px rgba(192,64,255,0.08);
-  border-color: var(--cyan);
-}
-.matrix-link::after {
-  content: '→'; transition: transform 0.3s ease;
-  display: inline-block;
-}
-.matrix-link:hover::after {
-  transform: translateX(6px);
-}
-
-/* ===== SECTIONS ===== */
-.section { position: relative; padding: 8rem 2rem; z-index: 10; }
-.container { max-width: 1200px; margin: 0 auto; }
-.section-header { text-align: center; margin-bottom: 5rem; }
-.section-label {
-  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600;
-  letter-spacing: 0.25em; text-transform: uppercase;
-  color: var(--cyan); margin-bottom: 1.2rem;
-  display: inline-block; padding: 0.4rem 1rem;
-  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(192,64,255,0.08));
-  border: 1px solid rgba(0, 240, 255, 0.1);
-  border-radius: 6px;
-  backdrop-filter: blur(10px);
-}
-.section-title {
-  font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800;
-  letter-spacing: -0.03em; margin-bottom: 1.2rem; line-height: 1.15;
-  background: linear-gradient(135deg, #fff 0%, #c0c0ff 50%, var(--cyan) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.section-desc {
-  font-size: 1.15rem; color: var(--text-secondary);
-  max-width: 650px; margin: 0 auto; line-height: 1.8;
-}
-
-/* ===== CARDS ===== */
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 1.8rem;
-}
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px; padding: 2.2rem;
-  backdrop-filter: blur(25px) saturate(1.2);
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative; overflow: hidden;
-}
-.card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
-  opacity: 0; transition: opacity 0.5s ease;
-}
-.card::after {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 60% 60% at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0,240,255,0.04), transparent);
-  opacity: 0; transition: opacity 0.4s ease;
-  pointer-events: none;
-}
-.card:hover {
-  border-color: rgba(0, 240, 255, 0.12);
-  transform: translateY(-6px);
-  box-shadow: 0 25px 80px rgba(0,0,0,0.5), 0 0 50px rgba(0,240,255,0.06);
-}
-.card:hover::before { opacity: 1; }
-.card:hover::after { opacity: 1; }
-.card-icon {
-  width: 52px; height: 52px; border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; margin-bottom: 1.4rem;
-  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(192,64,255,0.1));
-  border: 1px solid rgba(0, 240, 255, 0.12);
-  transition: all 0.4s ease;
-}
-.card:hover .card-icon {
-  transform: scale(1.1) rotate(-5deg);
-  box-shadow: 0 0 25px rgba(0,240,255,0.15);
-}
-.card h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.7rem; }
-.card p { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.8; }
-.card .card-meta {
-  margin-top: 1.5rem; padding-top: 1.5rem;
-  border-top: 1px solid var(--border-subtle);
-  font-family: var(--font-mono); font-size: 0.72rem;
-  color: var(--text-muted); letter-spacing: 0.05em;
-  display: flex; align-items: center; gap: 0.8rem;
-}
-
-/* ===== EVIDENCE CARDS ===== */
-.evidence-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.8rem;
-}
-.evidence-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px; padding: 2rem;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(25px);
-  position: relative; overflow: hidden;
-}
-.evidence-card::after {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 60% 60% at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0,240,255,0.03), transparent);
-  opacity: 0; transition: opacity 0.4s ease;
-  pointer-events: none;
-}
-.evidence-card:hover::after { opacity: 1; }
-.evidence-card:hover {
-  border-color: rgba(0, 240, 255, 0.12);
-  transform: translateY(-6px);
-  box-shadow: 0 25px 80px rgba(0,0,0,0.5), 0 0 50px rgba(0,240,255,0.05);
-}
-.evidence-header {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 1.2rem;
-}
-.evidence-value {
-  font-family: var(--font-mono); font-size: 2.4rem; font-weight: 700;
-  background: linear-gradient(135deg, var(--cyan), var(--blue), var(--violet));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
-}
-.evidence-meta { font-size: 0.82rem; color: var(--text-muted); line-height: 1.9; }
-.evidence-meta strong { color: var(--text-secondary); }
-.evidence-actions { margin-top: 1.2rem; display: flex; gap: 0.6rem; flex-wrap: wrap; }
-.evidence-actions a {
-  font-size: 0.72rem; padding: 0.35rem 0.8rem; border-radius: 6px;
-  font-family: var(--font-mono); text-decoration: none;
-  transition: all 0.3s ease; display: inline-block;
-}
-.evidence-actions a.cyan {
-  background: rgba(0, 240, 255, 0.08); color: var(--cyan);
-  border: 1px solid rgba(0, 240, 255, 0.15);
-}
-.evidence-actions a.cyan:hover {
-  background: rgba(0, 240, 255, 0.15);
-  box-shadow: 0 0 15px rgba(0,240,255,0.1);
-}
-.evidence-actions a.blue {
-  background: rgba(68, 136, 255, 0.06); color: var(--blue);
-  border: 1px solid rgba(68, 136, 255, 0.12);
-}
-.evidence-actions a.blue:hover {
-  background: rgba(68, 136, 255, 0.12);
-  box-shadow: 0 0 15px rgba(68,136,255,0.1);
-}
-
-/* ===== STATUS BADGES ===== */
-.status-badge {
-  font-size: 0.65rem; padding: 0.25rem 0.7rem;
-  border-radius: 6px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  font-family: var(--font-mono);
-}
-.status-validated {
-  background: var(--green-dim); color: var(--green);
-  border: 1px solid rgba(0, 255, 136, 0.2);
-  box-shadow: 0 0 10px rgba(0,255,136,0.05);
-}
-.status-experimental {
-  background: var(--amber-dim); color: var(--amber);
-  border: 1px solid rgba(255, 170, 0, 0.2);
-  box-shadow: 0 0 10px rgba(255,170,0,0.05);
-}
-.status-research {
-  background: var(--violet-dim); color: var(--violet);
-  border: 1px solid rgba(192, 64, 255, 0.2);
-  box-shadow: 0 0 10px rgba(192,64,255,0.05);
-}
-.status-planned {
-  background: rgba(255,255,255,0.02); color: var(--text-muted);
-  border: 1px solid var(--border-subtle);
-}
-
-/* ===== CLAIMS ===== */
-.claims-filter {
-  display: flex; flex-wrap: wrap; gap: 0.6rem;
-  justify-content: center; margin-bottom: 2.5rem;
-}
-.claims-filter button {
-  padding: 0.5rem 1.2rem; border-radius: 8px;
-  font-size: 0.75rem; cursor: pointer;
-  font-family: var(--font-mono); border: 1px solid;
-  background: transparent; color: var(--text-secondary);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-.claims-filter button:hover, .claims-filter button.active {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-}
-.claim-item {
-  display: grid; grid-template-columns: 130px 1fr 140px;
-  gap: 1.2rem; align-items: center;
-  padding: 1.2rem 1.8rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 0.8rem;
-  backdrop-filter: blur(15px);
-}
-.claim-item:hover {
-  border-color: rgba(0, 240, 255, 0.1);
-  background: rgba(255,255,255,0.03);
-  transform: translateX(4px);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-}
-
-/* ===== TERMINAL ===== */
-.terminal-block {
-  background: #040408;
-  border: 1px solid rgba(0, 240, 255, 0.08);
-  border-radius: 14px; padding: 1.8rem;
-  font-family: var(--font-mono); font-size: 0.84rem;
-  line-height: 1.9; color: var(--text-secondary);
-  overflow-x: auto;
-  position: relative;
-}
-.terminal-block::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  opacity: 0.3;
-}
-.terminal-header { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
-.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-
-/* ===== TIMELINE ===== */
-.timeline { position: relative; padding-left: 2.5rem; }
-.timeline::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: linear-gradient(180deg, var(--cyan), var(--blue), var(--violet), var(--pink));
-  border-radius: 2px;
-  box-shadow: 0 0 20px rgba(0,240,255,0.2);
-}
-.timeline-item { position: relative; padding-bottom: 3.5rem; padding-left: 2.5rem; }
-.timeline-item::before {
-  content: ''; position: absolute; left: -2.5rem; top: 0.3rem;
-  width: 14px; height: 14px; background: var(--bg-deep);
-  border: 2px solid var(--cyan); border-radius: 50%;
-  transform: translateX(-6px);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), 0 0 30px rgba(0,240,255,0.1);
-  transition: all 0.4s ease;
-}
-.timeline-item:hover::before {
-  transform: translateX(-6px) scale(1.2);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.5), 0 0 50px rgba(0,240,255,0.2);
-}
-.timeline-item.completed::before {
-  background: var(--green); border-color: var(--green);
-  box-shadow: 0 0 20px var(--green), 0 0 40px rgba(0,255,136,0.2);
-}
-.timeline-item.active::before {
-  background: var(--cyan); border-color: var(--cyan);
-  box-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0,240,255,0.3);
-  animation: pulseNav 2s ease-in-out infinite;
-}
-.timeline-item.planned::before {
-  background: var(--bg-deep); border-color: var(--text-muted);
-  box-shadow: none;
-}
-.timeline-date {
-  font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600;
-  color: var(--cyan); letter-spacing: 0.1em; margin-bottom: 0.6rem;
-  display: flex; align-items: center; gap: 0.6rem;
-}
-.timeline-item h4 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.6rem; }
-.timeline-item p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.8; }
-
-/* ===== METRICS ===== */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.8rem; margin-top: 3.5rem;
-}
-.metric-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px; padding: 2.2rem 1.8rem;
-  text-align: center; backdrop-filter: blur(25px);
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative; overflow: hidden;
-}
-.metric-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  opacity: 0; transition: opacity 0.4s ease;
-}
-.metric-card:hover::before { opacity: 1; }
-.metric-card:hover {
-  border-color: rgba(0, 240, 255, 0.1);
-  box-shadow: 0 0 50px rgba(0, 240, 255, 0.06);
-  transform: translateY(-4px);
-}
-.metric-value {
-  font-family: var(--font-mono); font-size: 2.6rem; font-weight: 700;
-  background: linear-gradient(135deg, var(--cyan), var(--blue), var(--violet));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text; line-height: 1; margin-bottom: 0.6rem;
-}
-.metric-label {
-  font-size: 0.82rem; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.12em;
-  font-family: var(--font-mono);
-}
-
-/* ===== CONTACT ===== */
-.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; }
-.contact-info h3 {
-  font-size: 1.6rem; font-weight: 700; margin-bottom: 1.2rem;
-  background: linear-gradient(135deg, #fff, var(--cyan));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.contact-info p { color: var(--text-secondary); line-height: 1.9; margin-bottom: 2rem; font-size: 1rem; }
-.contact-links { display: flex; flex-direction: column; gap: 1.2rem; }
-.contact-link {
-  display: flex; align-items: center; gap: 1.2rem;
-  padding: 1.2rem 1.8rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px; text-decoration: none;
-  color: var(--text-primary); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(15px);
-}
-.contact-link:hover {
-  border-color: var(--cyan);
-  transform: translateX(8px);
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.08), 0 10px 40px rgba(0,0,0,0.3);
-}
-.contact-link-icon {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
-  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(192,64,255,0.1));
-  border: 1px solid rgba(0, 240, 255, 0.12);
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-.contact-link:hover .contact-link-icon {
-  transform: scale(1.1) rotate(-5deg);
-  box-shadow: 0 0 20px rgba(0,240,255,0.15);
-}
-.contact-link-text { display: flex; flex-direction: column; }
-.contact-link-label {
-  font-family: var(--font-mono); font-size: 0.68rem;
-  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em;
-}
-.contact-link-value { font-size: 1rem; font-weight: 500; }
-
-/* ===== FOOTER ===== */
-footer {
-  position: relative; z-index: 10;
-  padding: 3.5rem 2rem; border-top: 1px solid var(--border-subtle);
-  text-align: center;
-}
-.footer-content {
-  max-width: 1200px; margin: 0 auto;
-  display: flex; justify-content: space-between; align-items: center;
-  flex-wrap: wrap; gap: 1.5rem;
-}
-.footer-left {
-  font-family: var(--font-mono); font-size: 0.75rem;
-  color: var(--text-muted); letter-spacing: 0.08em;
-}
-.footer-right { display: flex; gap: 2rem; }
-.footer-right a {
-  font-family: var(--font-mono); font-size: 0.75rem;
-  color: var(--text-muted); text-decoration: none;
-  transition: all 0.3s ease;
-  position: relative;
-}
-.footer-right a:hover {
-  color: var(--cyan);
-  text-shadow: 0 0 10px rgba(0,240,255,0.3);
-}
-
-/* ===== VISITOR COUNTER ===== */
-.visitor-counter {
-  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
-  padding: 0.7rem 1.2rem;
-  background: rgba(2, 2, 8, 0.85);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 240, 255, 0.12);
-  border-radius: 10px;
-  font-family: var(--font-mono); font-size: 0.72rem;
-  color: var(--cyan); letter-spacing: 0.08em;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.5), 0 0 20px rgba(0,240,255,0.05);
-}
-.visitor-counter::before {
-  content: ''; display: inline-block;
-  width: 6px; height: 6px; background: var(--cyan);
-  border-radius: 50%; margin-right: 0.6rem;
-  box-shadow: 0 0 10px var(--cyan);
-  animation: pulseNav 2s ease-in-out infinite;
-}
-
-/* ===== SCROLL REVEAL ===== */
-.reveal {
-  opacity: 0;
-  transform: translateY(40px);
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ===== GLITCH EFFECT ===== */
-.glitch-text {
-  position: relative;
-}
-.glitch-text::before,
-.glitch-text::after {
-  content: attr(data-text);
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  opacity: 0;
-}
-.glitch-text:hover::before {
-  animation: glitch1 0.3s ease;
-  color: var(--cyan);
-  opacity: 0.8;
-}
-.glitch-text:hover::after {
-  animation: glitch2 0.3s ease;
-  color: var(--violet);
-  opacity: 0.8;
-}
-@keyframes glitch1 {
-  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
-  20% { clip-path: inset(20% 0 60% 0); transform: translate(-3px, 2px); }
-  40% { clip-path: inset(50% 0 30% 0); transform: translate(3px, -2px); }
-  60% { clip-path: inset(10% 0 70% 0); transform: translate(-2px, 1px); }
-  80% { clip-path: inset(70% 0 10% 0); transform: translate(2px, -1px); }
-}
-@keyframes glitch2 {
-  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
-  20% { clip-path: inset(60% 0 20% 0); transform: translate(3px, -2px); }
-  40% { clip-path: inset(30% 0 50% 0); transform: translate(-3px, 2px); }
-  60% { clip-path: inset(70% 0 10% 0); transform: translate(2px, 1px); }
-  80% { clip-path: inset(10% 0 70% 0); transform: translate(-2px, -1px); }
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .nav-links { display: none; }
-  .hero { padding: 7rem 1.5rem 3rem; }
-  .contact-grid { grid-template-columns: 1fr; }
-  .section { padding: 5rem 1.5rem; }
-  .claim-item { grid-template-columns: 1fr; gap: 0.6rem; }
-  .footer-content { flex-direction: column; text-align: center; }
-  .pipeline-container { gap: 0.4rem; }
-  .pipe-step { padding: 0.5rem 1rem; font-size: 0.65rem; }
-}
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--bg-deep); }
-::-webkit-scrollbar-thumb { background: var(--bg-secondary); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
-::selection {
-  background: rgba(0, 240, 255, 0.2);
-  color: var(--text-primary);
-}
-</style>
-<script data-goatcounter="https://rft-sirm.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
-</head>
-<body>
-<canvas id="webgl-canvas"></canvas>
-<div class="noise-overlay"></div>
-<div class="scanlines"></div>
-<div class="vignette"></div>
-
-<nav id="navbar">
-  <a href="#" class="nav-logo" id="nav-logo" onclick="return false;"><span>RFT-SIRM</span></a>
-  <ul class="nav-links">
-    <li><a href="#pipeline" data-scroll>Pipeline</a></li>
-    <li><a href="#evidence" data-scroll>Evidence</a></li>
-    <li><a href="#claims" data-scroll>Claims</a></li>
-    <li><a href="#cases" data-scroll>Cases</a></li>
-    <li><a href="#timeline" data-scroll>Timeline</a></li>
-    <li><a href="#contact" data-scroll>Contact</a></li>
-  </ul>
-</nav>
-
-<div class="audio-toggle" id="audio-toggle" title="Toggle ambient sound">🔇</div>
-
-<section class="hero" id="lab">
-  <div class="hero-badge">Research Platform — Est. 2026</div>
-  <h1>
-    <span class="line1 glitch-text" data-text="Deterministic Execution.&#10;Invariant Systems.">Deterministic Execution.<br>Invariant Systems.</span>
-    <span class="line2">Formal verification for distributed state machines</span>
-  </h1>
-  <p class="hero-subtitle">
-    RFT-SIRM builds mathematically rigorous execution platforms where every state transition
-    is provably correct. Zero invariant violations across 4.29 billion+ operations.
-  </p>
-
-  <div id="pipeline" class="pipeline-container">
-    <div class="pipe-step" data-step="claim" style="border-color:rgba(0,240,255,0.4);color:#00f0ff;">CLAIM</div>
-    <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="model" style="border-color:rgba(68,136,255,0.4);color:#4488ff;">MODEL</div>
-    <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="exec" style="border-color:rgba(192,64,255,0.4);color:#c040ff;">EXECUTION</div>
-    <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="verify" style="border-color:rgba(0,255,136,0.4);color:#00ff88;">VERIFICATION</div>
-    <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="evidence" style="border-color:rgba(255,170,0,0.4);color:#ffaa00;">EVIDENCE</div>
-    <span class="pipe-arrow">→</span>
-    <div class="pipe-step" data-step="repro" style="border-color:rgba(255,68,68,0.4);color:#ff4444;">REPRODUCTION</div>
-  </div>
-  <div id="pipeline-detail">
-    <span style="color:#00f0ff;font-weight:600;">Click any stage above</span> to trace the research pipeline from mathematical claim to reproducible evidence.
-  </div>
-
-  <a href="matrix.html" class="matrix-link">Open Interactive Verification Matrix</a>
-</section>
-
-<section class="section" id="evidence">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-label">Every Number Has Provenance</span>
-      <h2 class="section-title">Evidence Center</h2>
-      <p class="section-desc">Repository, harness, seed, environment, limitation — every metric traced to its source.</p>
-    </div>
-    <div class="evidence-grid">
-      <div class="evidence-card reveal" data-delay="0">
-        <div class="evidence-header">
-          <div class="evidence-value">1T+</div>
-          <span class="status-badge status-validated">VALIDATED</span>
-        </div>
-        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Rift L1 Core Operations</h4>
-        <div class="evidence-meta">
-          <div><strong>Repository:</strong> Rift-L1-Blockchain</div>
-          <div><strong>Harness:</strong> libFuzzer, 5 stratified modes</div>
-          <div><strong>Duration:</strong> 5h 55m per CI run</div>
-          <div><strong>Throughput:</strong> ~5.75M ops/sec</div>
-          <div><strong>Invariant set:</strong> I1–I4</div>
-          <div><strong>Result:</strong> 0 violations, 0 crashes</div>
-          <div><strong>Limitation:</strong> In-memory state machine; no network/consensus</div>
-        </div>
-        <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" class="cyan">View Repository →</a>
-          <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain/actions" target="_blank" rel="noopener" class="blue">View CI →</a>
-        </div>
-      </div>
-      <div class="evidence-card reveal" data-delay="100">
-        <div class="evidence-header">
-          <div class="evidence-value">4.29B+</div>
-          <span class="status-badge status-validated">VALIDATED</span>
-        </div>
-        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">ABIv2 Memory Contexts</h4>
-        <div class="evidence-meta">
-          <div><strong>Repository:</strong> agave-abiv2-memory-contexts</div>
-          <div><strong>Harness:</strong> libFuzzer + Agave SVM mock</div>
-          <div><strong>Focus:</strong> Per-frame writable permission rollback</div>
-          <div><strong>Findings:</strong> 1 PoC-only bug documented</div>
-          <div><strong>Upstream:</strong> svm#25 (closed, PoC)</div>
-          <div><strong>Result:</strong> 0 kernel crashes</div>
-          <div><strong>Limitation:</strong> Research artifact; not merged upstream</div>
-        </div>
-        <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/agave-abiv2-memory-contexts" target="_blank" rel="noopener" class="cyan">View Repository →</a>
-          <a href="https://github.com/anza-xyz/agave/issues/25" target="_blank" rel="noopener" class="blue">View Issue →</a>
-        </div>
-      </div>
-      <div class="evidence-card reveal" data-delay="200">
-        <div class="evidence-header">
-          <div class="evidence-value">91M</div>
-          <span class="status-badge status-validated">VALIDATED</span>
-        </div>
-        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Agave Scheduler Fuzz</h4>
-        <div class="evidence-meta">
-          <div><strong>Repository:</strong> agave-rift-scheduler</div>
-          <div><strong>Harness:</strong> libFuzzer, conflict-graph scheduler</div>
-          <div><strong>Duration:</strong> 5h 55m per CI run</div>
-          <div><strong>Throughput:</strong> ~4,300 exec/sec</div>
-          <div><strong>Invariant set:</strong> I1–I4 (accounting, monotonicity, drain)</div>
-          <div><strong>Result:</strong> 0 violations</div>
-          <div><strong>Limitation:</strong> Standalone scheduler; not integrated into Agave</div>
-        </div>
-        <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/agave-rift-scheduler" target="_blank" rel="noopener" class="cyan">View Repository →</a>
-          <a href="https://github.com/anza-xyz/agave/issues/14274" target="_blank" rel="noopener" class="blue">View RFC →</a>
-        </div>
-      </div>
-      <div class="evidence-card reveal" data-delay="300">
-        <div class="evidence-header">
-          <div class="evidence-value">184K</div>
-          <span class="status-badge status-validated">VALIDATED</span>
-        </div>
-        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Aave V4 Hub Model</h4>
-        <div class="evidence-meta">
-          <div><strong>Repository:</strong> aave-v4-hub-model-review</div>
-          <div><strong>Harness:</strong> Python state machine, seeded</div>
-          <div><strong>Scope:</strong> draw/restore/reportDeficit/eliminateDeficit</div>
-          <div><strong>Precision:</strong> RAY = 10²⁷, explicit rounding</div>
-          <div><strong>Boundary:</strong> B-1 … B-5 edge cases</div>
-          <div><strong>Result:</strong> 0 invariant violations</div>
-          <div><strong>Limitation:</strong> Model-level only; not bytecode audit</div>
-        </div>
-        <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank" rel="noopener" class="cyan">View Repository →</a>
-          <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review/blob/main/MEMO.md" target="_blank" rel="noopener" class="blue">View Memo →</a>
-        </div>
-      </div>
-      <div class="evidence-card reveal" data-delay="400">
-        <div class="evidence-header">
-          <div class="evidence-value">1B+</div>
-          <span class="status-badge status-validated">VALIDATED</span>
-        </div>
-        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">seL4 CDT Verification</h4>
-        <div class="evidence-meta">
-          <div><strong>Repository:</strong> UltraCore-RFT (seL4 module)</div>
-          <div><strong>Harness:</strong> Deterministic state-machine fuzz</div>
-          <div><strong>Target:</strong> Capability Derivation Tree</div>
-          <div><strong>Duration:</strong> Marathon + post-marathon suite</div>
-          <div><strong>Tests:</strong> 123/123 passed</div>
-          <div><strong>Result:</strong> 0 kernel crashes</div>
-          <div><strong>Limitation:</strong> Complementary validation; not replacing seL4 proof</div>
-        </div>
-        <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" class="cyan">View Repository →</a>
-        </div>
-      </div>
-      <div class="evidence-card reveal" data-delay="500">
-        <div class="evidence-header">
-          <div class="evidence-value">2.5B+</div>
-          <span class="status-badge status-validated">VALIDATED</span>
-        </div>
-        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;">Rift Network On-Chain</h4>
-        <div class="evidence-meta">
-          <div><strong>Repository:</strong> Rift-Network</div>
-          <div><strong>Harness:</strong> Anchor workspace fuzz + manual review</div>
-          <div><strong>Audit:</strong> Independent security audit, 14 findings</div>
-          <div><strong>Framework:</strong> Anchor + SPL on Solana</div>
-          <div><strong>Result:</strong> All findings addressed</div>
-          <div><strong>Status:</strong> RC v1.0</div>
-          <div><strong>Limitation:</strong> Audit report under NDA; summary only public</div>
-        </div>
-        <div class="evidence-actions">
-          <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" class="cyan">View Repository →</a>
-          <span style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,170,0,0.15);font-size:0.7rem;padding:0.35rem 0.8rem;border-radius:6px;font-family:var(--font-mono);">Audit Summary</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="claims" style="background:rgba(255,255,255,0.003);">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-label">Traceability</span>
-      <h2 class="section-title">Claims Registry</h2>
-      <p class="section-desc">Every technical claim with its current evidentiary status. Never automatically promoted.</p>
-    </div>
-    <div class="claims-filter reveal">
-      <button onclick="filterClaims('all')" style="border-color:rgba(255,255,255,0.1);color:var(--text-secondary);">All</button>
-      <button onclick="filterClaims('validated')" style="border-color:rgba(0,255,136,0.2);color:#00ff88;">🟢 Validated</button>
-      <button onclick="filterClaims('implemented')" style="border-color:rgba(68,136,255,0.2);color:#4488ff;">🔵 Implemented</button>
-      <button onclick="filterClaims('experimental')" style="border-color:rgba(255,170,0,0.2);color:#ffaa00;">🟡 Experimental</button>
-      <button onclick="filterClaims('research')" style="border-color:rgba(192,64,255,0.2);color:#c040ff;">🟣 Research</button>
-      <button onclick="filterClaims('planned')" style="border-color:rgba(255,255,255,0.15);color:var(--text-muted);">⚪ Planned</button>
-    </div>
-    <div id="claims-list">
-      <div class="claim-item reveal" data-status="validated" data-delay="0">
-        <span class="status-badge status-validated">VALIDATED</span>
-        <span style="font-size:0.92rem;">SIRM I1–I4 hold across 1T+ core operations</span>
-        <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Rift-L1-Blockchain →</a>
-      </div>
-      <div class="claim-item reveal" data-status="validated" data-delay="50">
-        <span class="status-badge status-validated">VALIDATED</span>
-        <span style="font-size:0.92rem;">O(1) distribution complexity via global_field</span>
-        <a href="https://github.com/RFT-SIRM/Rift-L1-Blockchain" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Rift-L1 / Rift-Network →</a>
-      </div>
-      <div class="claim-item reveal" data-status="validated" data-delay="100">
-        <span class="status-badge status-validated">VALIDATED</span>
-        <span style="font-size:0.92rem;">Aave V4 Hub model: 0 invariant violations in 184K ops</span>
-        <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">aave-v4-hub-model →</a>
-      </div>
-      <div class="claim-item reveal" data-status="experimental" data-delay="150">
-        <span class="status-badge status-experimental">EXPERIMENTAL</span>
-        <span style="font-size:0.92rem;">Conflict-aware scheduler reduces lock churn in Agave banking_stage</span>
-        <a href="https://github.com/RFT-SIRM/agave-rift-scheduler" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">agave-rift-scheduler →</a>
-      </div>
-      <div class="claim-item reveal" data-status="implemented" data-delay="200">
-        <span class="status-badge" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.2);text-align:center;">IMPLEMENTED</span>
-        <span style="font-size:0.92rem;">Per-frame writable permission rollback for ABIv2</span>
-        <a href="https://github.com/RFT-SIRM/agave-abiv2-memory-contexts" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">agave-abiv2-mem →</a>
-      </div>
-      <div class="claim-item reveal" data-status="research" data-delay="250">
-        <span class="status-badge status-research">RESEARCH</span>
-        <span style="font-size:0.92rem;">Invariant-preserving deterministic AI agents</span>
-        <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
-      </div>
-      <div class="claim-item reveal" data-status="planned" data-delay="300">
-        <span class="status-badge status-planned">PLANNED</span>
-        <span style="font-size:0.92rem;">TLA+ machine-checked proofs of critical invariants</span>
-        <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
-      </div>
-      <div class="claim-item reveal" data-status="planned" data-delay="350">
-        <span class="status-badge status-planned">PLANNED</span>
-        <span style="font-size:0.92rem;">Coq development for core state transition properties</span>
-        <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="cases">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-label">Evidence</span>
-      <h2 class="section-title">Case Studies</h2>
-      <p class="section-desc">Real systems. Real verification. Real results across multiple domains.</p>
-    </div>
-    <div class="cards-grid">
-      <div class="card reveal" data-delay="0">
-        <div class="card-icon" style="color:var(--blue);">🏦</div>
-        <h3>Aave V4 Hub Model Review</h3>
-        <p>Deterministic Python state machine simulating draw, restore, reportDeficit, eliminateDeficit. RAY = 10²⁷ precision. 184K ops, 0 violations.</p>
-        <div class="card-meta">
-          <span class="status-badge" style="background:rgba(68,136,255,0.08);color:#4488ff;border:1px solid rgba(68,136,255,0.2);">DeFi</span>
-          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">184K ops · 0 violations</span>
-        </div>
-      </div>
-      <div class="card reveal" data-delay="100">
-        <div class="card-icon" style="color:var(--green);">⚡</div>
-        <h3>Agave Conflict-Aware Scheduler</h3>
-        <p>Conflict-graph scheduler with hotspot heat map and generation aging. 91M exec/run. RFC agave#14274.</p>
-        <div class="card-meta">
-          <span class="status-badge status-experimental">SVM</span>
-          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">91M exec/run · RFC #14274</span>
-        </div>
-      </div>
-      <div class="card reveal" data-delay="200">
-        <div class="card-icon" style="color:var(--amber);">🧠</div>
-        <h3>ABIv2 Memory Contexts</h3>
-        <p>Per-frame writable permission rollback for nested CPI calls. 4.29B+ executions. 1 PoC bug documented.</p>
-        <div class="card-meta">
-          <span class="status-badge" style="background:rgba(255,170,0,0.08);color:#ffaa00;border:1px solid rgba(255,170,0,0.2);">Memory</span>
-          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">4.29B exec · 1 PoC</span>
-        </div>
-      </div>
-      <div class="card reveal" data-delay="300">
-        <div class="card-icon" style="color:var(--violet);">🔒</div>
-        <h3>seL4 CDT Complementary Verification</h3>
-        <p>Independent engineering validation of formally verified seL4 microkernel CDT. 1B+ ops, 0 crashes, 123/123 tests.</p>
-        <div class="card-meta">
-          <span class="status-badge status-research">Kernel</span>
-          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">1B+ ops · 123/123 pass</span>
-        </div>
-      </div>
-      <div class="card reveal" data-delay="400">
-        <div class="card-icon" style="color:var(--cyan);">⛓️</div>
-        <h3>Rift-L1 & Rift Network</h3>
-        <p>Standalone L1 validator core and Solana on-chain protocol. SIRM invariants I1–I4. 1T+ L1 ops, 2.5B+ on-chain, 14 audit findings fixed.</p>
-        <div class="card-meta">
-          <span class="status-badge" style="background:rgba(255,68,68,0.08);color:#ff4444;border:1px solid rgba(255,68,68,0.2);">Blockchain</span>
-          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">1T+ ops · 14 fixed</span>
-        </div>
-      </div>
-      <div class="card reveal" data-delay="500">
-        <div class="card-icon" style="color:var(--pink);">🤖</div>
-        <h3>AI Research — Deterministic Agents</h3>
-        <p>Neural networks constrained by invariant-preserving execution. Every agent action is a state transition subject to SIRM checks. Conceptual framework.</p>
-        <div class="card-meta">
-          <span class="status-badge status-research">AI</span>
-          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">Conceptual · No artifacts</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="timeline" style="background:rgba(255,255,255,0.003);">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-label">History</span>
-      <h2 class="section-title">Research Timeline</h2>
-      <p class="section-desc">From first principles to production systems. A trace of verifiable milestones.</p>
-    </div>
-    <div class="timeline">
-      <div class="timeline-item completed reveal" data-delay="0">
-        <div class="timeline-date">2026 Q2 — Foundation <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
-        <h4>RFT-SIRM Laboratory Established</h4>
-        <p>Initial formulation of Stable Invariant Rift Model. First mathematical proofs of I1-I4 constraints. Repository structure and CI pipeline.</p>
-      </div>
-      <div class="timeline-item completed reveal" data-delay="100">
-        <div class="timeline-date">2026 Q2 — Verification <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
-        <h4>First Fuzzing Campaign</h4>
-        <p>libFuzzer integration with structured state-machine inputs. 100M+ executions in first month. Zero invariant violations. Differential validation framework between Python and Rust.</p>
-      </div>
-      <div class="timeline-item completed reveal" data-delay="200">
-        <div class="timeline-date">2026 Q3 — seL4 <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
-        <h4>Kernel Complementary Verification</h4>
-        <p>Independent validation of seL4 CDT. 1B+ operations, 0 crashes. Post-marathon test suite: 123/123 passed. First external research collaboration.</p>
-      </div>
-      <div class="timeline-item completed reveal" data-delay="300">
-        <div class="timeline-date">2026 Q3 — DeFi <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
-        <h4>Aave V4 Hub Model Review</h4>
-        <p>Deterministic fuzzing of Aave V4 Hub invariant model. 184K operations, 0 violations. Complementary to Certora formal verification. Published methodology.</p>
-      </div>
-      <div class="timeline-item completed reveal" data-delay="400">
-        <div class="timeline-date">2026 Q4 — Scheduler <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
-        <h4>Conflict-Aware Scheduling</h4>
-        <p>Agave banking_stage scheduler with contention graph analysis. 91M exec/run. Upstream issue #14274 filed. Permission rollback memory contexts.</p>
-      </div>
-      <div class="timeline-item active reveal" data-delay="500">
-        <div class="timeline-date">2026 Q4 — Network <span style="background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,240,255,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">ACTIVE</span></div>
-        <h4>Rift Network Audit Complete</h4>
-        <p>14 security findings addressed. 2.5B+ fuzz runs. Rift-L1 standalone validator core: 1T+ operations, 0 invariant violations.</p>
-      </div>
-      <div class="timeline-item planned reveal" data-delay="600">
-        <div class="timeline-date">2026 Q4 — Formal <span style="background:rgba(255,255,255,0.02);color:var(--text-muted);border:1px solid var(--border-subtle);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">PLANNED</span></div>
-        <h4>TLA+ Specifications</h4>
-        <p>Machine-checked proofs of critical invariants in TLA+. Coq development for core state transition properties. Target: fully verified execution path.</p>
-      </div>
-      <div class="timeline-item planned reveal" data-delay="700">
-        <div class="timeline-date">2026 Q4 — Scale <span style="background:rgba(255,255,255,0.02);color:var(--text-muted);border:1px solid var(--border-subtle);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">PLANNED</span></div>
-        <h4>High-Assurance Infrastructure</h4>
-        <p>Kernel-agnostic deployment. Critical computing environments. Additional verified kernels beyond seL4. Production-ready validator network.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="metrics">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-label">Aggregate</span>
-      <h2 class="section-title">Laboratory Metrics</h2>
-      <p class="section-desc">Cross-system totals. Every number traced to its source.</p>
-    </div>
-    <div class="metrics-grid">
-      <div class="metric-card reveal" data-delay="0">
-        <div class="metric-value" data-count="6920000000000">6.9T+</div>
-        <div class="metric-label">Total Operations Fuzzed</div>
-      </div>
-      <div class="metric-card reveal" data-delay="100">
-        <div class="metric-value" data-count="0">0</div>
-        <div class="metric-label">Invariant Violations</div>
-      </div>
-      <div class="metric-card reveal" data-delay="200">
-        <div class="metric-value" data-count="6">6</div>
-        <div class="metric-label">Systems Verified</div>
-      </div>
-      <div class="metric-card reveal" data-delay="300">
-        <div class="metric-value" data-count="14">14</div>
-        <div class="metric-label">Security Findings Fixed</div>
-      </div>
-      <div class="metric-card reveal" data-delay="400">
-        <div class="metric-value" data-count="123">123</div>
-        <div class="metric-label">seL4 Tests Passed</div>
-      </div>
-      <div class="metric-card reveal" data-delay="500">
-        <div class="metric-value" data-count="5">5</div>
-        <div class="metric-label">Verification Layers</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="contact" style="background:rgba(255,255,255,0.003);">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-label">Connect</span>
-      <h2 class="section-title">Contact & Resources</h2>
-      <p class="section-desc">Research collaborations, security disclosures, and architectural discussions.</p>
-    </div>
-    <div class="contact-grid">
-      <div class="contact-info reveal" data-delay="0">
-        <h3>Research Laboratory</h3>
-        <p>RFT-SIRM is a deterministic invariant systems research laboratory. We collaborate on formal verification, state transition architectures, and high-assurance distributed systems.</p>
-        <p style="color:var(--text-muted);font-size:0.95rem;">All repositories are open source under Apache 2.0. Contributions, corrections, and architecture discussions are welcome.</p>
-      </div>
-      <div class="contact-links reveal" data-delay="200">
-        <a href="https://github.com/RFT-SIRM" class="contact-link" target="_blank" rel="noopener">
-          <div class="contact-link-icon">⚡</div>
-          <div class="contact-link-text">
-            <span class="contact-link-label">Organization</span>
-            <span class="contact-link-value">github.com/RFT-SIRM</span>
-          </div>
-        </a>
-        <a href="https://github.com/RFT-SIRM/UltraCore-RFT" class="contact-link" target="_blank" rel="noopener">
-          <div class="contact-link-icon">◈</div>
-          <div class="contact-link-text">
-            <span class="contact-link-label">Main Repository</span>
-            <span class="contact-link-value">UltraCore-RFT</span>
-          </div>
-        </a>
-        <a href="https://rft-sirm.github.io" class="contact-link">
-          <div class="contact-link-icon">🌐</div>
-          <div class="contact-link-text">
-            <span class="contact-link-label">Laboratory Website</span>
-            <span class="contact-link-value">rft-sirm.github.io</span>
-          </div>
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-content">
-    <div class="footer-left">
-      RFT-SIRM Research Laboratory — Deterministic Invariant Systems
-    </div>
-    <div class="footer-right">
-      <a href="https://github.com/RFT-SIRM" target="_blank" rel="noopener">GitHub</a>
-      <a href="matrix.html">Verification Matrix</a>
-      <a href="#lab" data-scroll>Top</a>
-    </div>
-  </div>
-</footer>
-
-<div class="visitor-counter" id="visitor-counter">VISITORS: <span id="gc-count">...</span></div>
-
-<script>
-// ===== THREE.JS BACKGROUND =====
-(function() {
-  const canvas = document.getElementById('webgl-canvas');
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  // Particle system
-  const particleCount = 300;
-  const positions = new Float32Array(particleCount * 3);
-  const colors = new Float32Array(particleCount * 3);
-  const sizes = new Float32Array(particleCount);
-  const velocities = [];
-
-  const colorPalette = [
-    new THREE.Color(0x00f0ff),
-    new THREE.Color(0xc040ff),
-    new THREE.Color(0x00ff88),
-    new THREE.Color(0xffaa00),
-    new THREE.Color(0x4488ff)
-  ];
-
-  for (let i = 0; i < particleCount; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 40;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 40;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
-
-    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-    colors[i * 3] = color.r;
-    colors[i * 3 + 1] = color.g;
-    colors[i * 3 + 2] = color.b;
-
-    sizes[i] = Math.random() * 2 + 0.5;
-
-    velocities.push({
-      x: (Math.random() - 0.5) * 0.01,
-      y: (Math.random() - 0.5) * 0.01,
-      z: (Math.random() - 0.5) * 0.005
-    });
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-
-  const material = new THREE.PointsMaterial({
-    size: 0.15,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending,
-    sizeAttenuation: true
-  });
-
-  const particles = new THREE.Points(geometry, material);
-  scene.add(particles);
-
-  // Wireframe spheres (orbital rings)
-  const sphereGroup = new THREE.Group();
-  for (let i = 0; i < 5; i++) {
-    const sphereGeo = new THREE.IcosahedronGeometry(3 + i * 2, 1);
-    const sphereMat = new THREE.MeshBasicMaterial({
-      color: colorPalette[i],
-      wireframe: true,
-      transparent: true,
-      opacity: 0.06
-    });
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-    sphere.rotation.x = Math.random() * Math.PI;
-    sphere.rotation.y = Math.random() * Math.PI;
-    sphereGroup.add(sphere);
-  }
-  scene.add(sphereGroup);
-
-  // Connection lines between nearby particles
-  const lineMaterial = new THREE.LineBasicMaterial({
-    color: 0x00f0ff,
-    transparent: true,
-    opacity: 0.03
-  });
-
-  camera.position.z = 15;
-
-  let mouseX = 0, mouseY = 0;
-  let targetMouseX = 0, targetMouseY = 0;
-
-  document.addEventListener('mousemove', (e) => {
-    targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-    targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-  });
-
-  let time = 0;
-  function animate() {
-    requestAnimationFrame(animate);
-    time += 0.005;
-
-    mouseX += (targetMouseX - mouseX) * 0.05;
-    mouseY += (targetMouseY - mouseY) * 0.05;
-
-    const posArray = geometry.attributes.position.array;
-    for (let i = 0; i < particleCount; i++) {
-      posArray[i * 3] += velocities[i].x + Math.sin(time + i) * 0.002;
-      posArray[i * 3 + 1] += velocities[i].y + Math.cos(time + i * 0.5) * 0.002;
-      posArray[i * 3 + 2] += velocities[i].z;
-
-      // Wrap around
-      if (posArray[i * 3] > 20) posArray[i * 3] = -20;
-      if (posArray[i * 3] < -20) posArray[i * 3] = 20;
-      if (posArray[i * 3 + 1] > 20) posArray[i * 3 + 1] = -20;
-      if (posArray[i * 3 + 1] < -20) posArray[i * 3 + 1] = 20;
-      if (posArray[i * 3 + 2] > 15) posArray[i * 3 + 2] = -15;
-      if (posArray[i * 3 + 2] < -15) posArray[i * 3 + 2] = 15;
-    }
-    geometry.attributes.position.needsUpdate = true;
-
-    particles.rotation.y = time * 0.1;
-    particles.rotation.x = mouseY * 0.1;
-
-    sphereGroup.children.forEach((sphere, i) => {
-      sphere.rotation.x += 0.001 * (i + 1);
-      sphere.rotation.y += 0.002 * (i + 1);
-      sphere.rotation.z += 0.0005 * (i + 1);
-    });
-    sphereGroup.rotation.y = mouseX * 0.2;
-    sphereGroup.rotation.x = mouseY * 0.1;
-
-    camera.position.x = mouseX * 2;
-    camera.position.y = -mouseY * 2;
-    camera.lookAt(0, 0, 0);
-
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-})();
-
-// ===== AUDIO SYSTEM =====
-(function() {
-  let audioCtx = null;
-  let isPlaying = false;
-  let oscillators = [];
-  let gainNodes = [];
-  let intervalId = null;
-
-  const toggle = document.getElementById('audio-toggle');
-
-  function createAmbientSound() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    // Create 3 oscillators for ambient drone
-    const freqs = [55, 82.5, 110]; // A1, E2, A2
-    freqs.forEach((freq, i) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
-
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-
-      filter.type = 'lowpass';
-      filter.frequency.value = 400;
-      filter.Q.value = 1;
-
-      gain.gain.value = 0;
-      gain.gain.linearRampToValueAtTime(0.015, audioCtx.currentTime + 2);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-
-      oscillators.push(osc);
-      gainNodes.push(gain);
-    });
-
-    // Random ambient notes
-    intervalId = setInterval(() => {
-      if (!isPlaying) return;
-      const note = 110 + Math.random() * 440;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = note;
-      gain.gain.value = 0;
-      gain.gain.linearRampToValueAtTime(0.008, audioCtx.currentTime + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 2);
-    }, 4000 + Math.random() * 4000);
-  }
-
-  function stopAmbientSound() {
-    gainNodes.forEach(g => {
-      g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
-    });
-    setTimeout(() => {
-      oscillators.forEach(o => o.stop());
-      oscillators = [];
-      gainNodes = [];
-      if (intervalId) clearInterval(intervalId);
-    }, 1000);
-  }
-
-  toggle.addEventListener('click', () => {
-    isPlaying = !isPlaying;
-    toggle.classList.toggle('active', isPlaying);
-    toggle.textContent = isPlaying ? '🔊' : '🔇';
-    if (isPlaying) {
-      createAmbientSound();
-    } else {
-      stopAmbientSound();
-    }
-  });
-
-  // Hover sound effects
-  document.querySelectorAll('.pipe-step, .card, .evidence-card, .metric-card, .contact-link').forEach(el => {
-    el.addEventListener('mouseenter', () => {
-      if (!isPlaying || !audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 440 + Math.random() * 220;
-      gain.gain.value = 0;
-      gain.gain.linearRampToValueAtTime(0.005, audioCtx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.3);
-    });
-  });
-})();
-
-// ===== NAVIGATION =====
-const navbar = document.getElementById('navbar');
-window.addEventListener('scroll', () => {
-  navbar.classList.toggle('scrolled', window.scrollY > 50);
-});
-
-document.querySelectorAll('a[data-scroll]').forEach(link => {
-  link.addEventListener('click', function(e) {
-    e.preventDefault();
-    const targetId = this.getAttribute('href');
-    if (targetId && targetId.startsWith('#')) {
-      const target = document.querySelector(targetId);
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
-    }
-  });
-});
-
-document.getElementById('nav-logo').addEventListener('click', function(e) {
-  e.preventDefault();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-const sections = document.querySelectorAll('section[id]');
-const navLinks = document.querySelectorAll('.nav-links a');
-window.addEventListener('scroll', () => {
-  let current = '';
-  sections.forEach(section => {
-    const sectionTop = section.offsetTop - 100;
-    if (window.scrollY >= sectionTop) current = section.getAttribute('id');
-  });
-  navLinks.forEach(link => {
-    link.classList.remove('active');
-    if (link.getAttribute('href') === '#' + current) link.classList.add('active');
-  });
-});
-
-// ===== PIPELINE =====
-const pipelineData = {
-  claim: '<strong style="color:#00f0ff;">CLAIM</strong> — A technical assertion about system behavior. Example: "SIRM I1–I4 hold across all state transitions." Claims are never assumed true without evidence.',
-  model: '<strong style="color:#4488ff;">MODEL</strong> — Mathematical formalization of the claim. State variables, transition function, invariant predicates. SIRM defines S = {global_field, total_base_sum, ...} with T: S × op → S.',
-  exec: '<strong style="color:#c040ff;">EXECUTION</strong> — Implementation in code. Rust core with checked arithmetic. Python reference model for differential validation. Every line of execution code is traceable to a model element.',
-  verify: '<strong style="color:#00ff88;">VERIFICATION</strong> — Multi-layer validation: static analysis (L1), engineering tests (L2), deterministic fuzzing (L3), kernel validation (L3b), DeFi model fuzz (L3c), formal methods (L4 — planned).',
-  evidence: '<strong style="color:#ffaa00;">EVIDENCE</strong> — Reproducible artifacts: repository, commit hash, harness configuration, seed, execution count, invariant set, result, limitation. Every number has provenance.',
-  repro: '<strong style="color:#ff4444;">REPRODUCTION</strong> — Given source commit + environment + seed + operation corpus, any third party can reproduce the exact state trace and hash. This is the final standard of scientific computing.'
-};
-document.querySelectorAll('.pipe-step').forEach(step => {
-  step.addEventListener('click', () => {
-    const key = step.getAttribute('data-step');
-    const detail = document.getElementById('pipeline-detail');
-    detail.style.opacity = '0';
-    setTimeout(() => {
-      detail.innerHTML = pipelineData[key];
-      detail.style.opacity = '1';
-    }, 200);
-  });
-});
-
-// ===== CLAIMS FILTER =====
-function filterClaims(status) {
-  const items = document.querySelectorAll('.claim-item');
-  items.forEach(item => {
-    item.style.display = (status === 'all' || item.getAttribute('data-status') === status) ? 'grid' : 'none';
-  });
-  document.querySelectorAll('.claims-filter button').forEach(btn => {
-    btn.classList.remove('active');
-    const btnText = btn.textContent.toLowerCase();
-    if ((status === 'all' && btnText.includes('all')) || btnText.includes(status)) {
-      btn.classList.add('active');
-    }
-  });
-}
-
-// ===== ANIMATED COUNTERS =====
-const counters = document.querySelectorAll('.metric-value[data-count]');
-const counterObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const el = entry.target;
-      const target = parseInt(el.getAttribute('data-count'));
-      const duration = 2500;
-      const start = performance.now();
-      function update(now) {
-        const elapsed = now - start;
-        const progress = Math.min(elapsed / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 4);
-        const current = Math.floor(ease * target);
-        if (target >= 1000000000000) {
-          el.textContent = (current / 1000000000000).toFixed(1) + 'T+';
-        } else if (target >= 1000000000) {
-          el.textContent = (current / 1000000000).toFixed(1) + 'B+';
-        } else if (target >= 1000000) {
-          el.textContent = (current / 1000000).toFixed(0) + 'M+';
-        } else {
-          el.textContent = current.toLocaleString();
+<!doctype html>
+<html>
+    <head lang="f">
+        <meta charset="UTF-8" />
+    </head>
+    <style>
+        * {
+            color: #4c4a4a;
         }
-        if (progress < 1) requestAnimationFrame(update);
-        else {
-          if (target >= 1000000000000) el.textContent = (target / 1000000000000).toFixed(1) + 'T+';
-          else if (target >= 1000000000) el.textContent = (target / 1000000000).toFixed(1) + 'B+';
-          else if (target >= 1000000) el.textContent = (target / 1000000).toFixed(0) + 'M+';
-          else el.textContent = target.toLocaleString();
+
+        .hidden {
+            height: 0;
+            width: 0;
+            overflow: hidden;
         }
-      }
-      requestAnimationFrame(update);
-      counterObserver.unobserve(el);
-    }
-  });
-}, { threshold: 0.5 });
-counters.forEach(counter => counterObserver.observe(counter));
 
-// ===== SCROLL REVEAL =====
-const revealObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const delay = parseInt(entry.target.getAttribute('data-delay') || '0');
-      setTimeout(() => {
-        entry.target.classList.add('visible');
-      }, delay);
-      revealObserver.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+        .modal {
+            position: absolute;
+            inset: 0;
+            background: white;
+        }
 
-// ===== MOUSE TRACKING FOR CARDS =====
-document.querySelectorAll('.card, .evidence-card').forEach(card => {
-  card.addEventListener('mousemove', (e) => {
-    const rect = card.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    card.style.setProperty('--mouse-x', x + '%');
-    card.style.setProperty('--mouse-y', y + '%');
-  });
-});
+        .heading {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
 
-// ===== GOATCOUNTER =====
-(function() {
-  var el = document.getElementById('gc-count');
-  if (!el) return;
-  fetch('https://rft-sirm.goatcounter.com/counter//json')
-    .then(function(r) { return r.json(); })
-    .then(function(d) { el.textContent = d.count.toLocaleString(); })
-    .catch(function() { el.textContent = '∞'; });
-})();
-</script>
-</body>
+        .job {
+            font-size: medium;
+            font-style: italic;
+        }
+    </style>
+    <body>
+        <div>
+            <a href="/">
+                <img src="media/logo.jpg" />
+            </a>
+        </div>
+        <h2>Инклюзивные решения - Поиск работы для всех</h2>
+
+        <div>
+            <h4>Меню</h4>
+            <ul>
+                <li onclick="location.href='/'" role="link">Главная</li>
+                <li onclick="location.href='/vacancies'" role="link">
+                    Вакансии
+                </li>
+                <li onclick="location.href='/about'" role="link">О компании</li>
+                <li onclick="location.href='/contacts'" role="link">
+                    Контакты
+                </li>
+            </ul>
+        </div>
+
+        <div>
+            <p>
+                Мы создаем равные возможности трудоустройства для людей с
+                ограничениями и помогаем компаниям строить инклюзивные команды!
+            </p>
+
+            <h3>Актуальные вакансии</h3>
+
+            <div>
+                <div>
+                    <h3 class="job">Специалист по доступности</h3>
+                    <span>Подробнее о вакансии</span>
+                    <details>
+                        Тестирование веб-приложений и мобильных приложений на
+                        соответствие стандартам WCAG. Работа с командами
+                        разработки по внедрению принципов универсального
+                        дизайна.Удаленная работа, гибкий график.
+                    </details>
+                </div>
+
+                <div>
+                    <h2 class="job">UX-дизайнер инклюзивных интерфейсов</h2>
+                    <span>Подробнее о вакансии</span>
+                    <details>
+                        Создание пользовательских интерфейсов с учетом
+                        потребностей людей с различными особенностями.
+                        Проведение исследований доступности, создание
+                        инклюзивных дизайн-систем. Возможность работы из офиса с
+                        полной адаптацией рабочего места.
+                    </details>
+                </div>
+
+                <div>
+                    <h4 class="job">Frontend-разработчик</h4>
+                    <span>Подробнее о вакансии</span>
+                    <details>
+                        Разработка веб-приложений с использованием современных
+                        технологий и обязательным соблюдением принципов
+                        доступности. Опыт работы с ARIA, семантической
+                        разметкой. Команда поддерживает использование
+                        ассистивных технологий.
+                    </details>
+                </div>
+            </div>
+
+            <div>
+                <h2>Подать заявку</h2>
+                <div
+                    onclick="document.querySelector('.modal').classList.remove('hidden');"
+                >
+                    <button id="apply">Откликнуться на вакансию</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal hidden" id="modal">
+            <div class="heading">
+                <h3>Ваш отклик</h3>
+                <div
+                    tabindex="-1"
+                    onclick="document.querySelector('#modal').classList.add('hidden')"
+                >
+                    ❌
+                </div>
+            </div>
+            <div>
+                <span>Выберите вакансию</span>
+                <select id="select">
+                    <option>Специалист по доступности</option>
+                    <option>UX-дизайнер инклюзивных интерфейсов</option>
+                    <option>Frontend-разработчик</option>
+                </select>
+
+                <div>
+                    <span id="work_format_label"
+                        >Предпочитаемый формат работы</span
+                    >
+                    <span>Удаленно</span>
+                    <input id="format1" type="checkbox" checked />
+                    <span>Офис</span>
+                    <input id="format2" type="checkbox" />
+                    <span>Гибрид</span>
+                    <input id="format3" type="checkbox" />
+                </div>
+
+                <div>
+                    <span>Электронная почта:</span>
+                    <input type="email" required />
+                </div>
+
+                <div>
+                    <span>Телефон</span>
+                    <input type="number" required />
+                </div>
+
+                <div>
+                    <span>Опыт работы (лет)</span>
+                    <input type="number" required />
+                </div>
+
+                <div>
+                    <span>Особые потребности для рабочего места </span>
+                    <textarea
+                        id="accessibility_needs"
+                        rows="3"
+                        placeholder="Опишите необходимые адаптации рабочего места, если требуются"
+                    ></textarea>
+                </div>
+
+                <button onclick="alert('Заявка отправлена!')">
+                    Подать заявку
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <div>
+                Присоединяйтесь к нашему сообществу инклюзивных работодателей!
+            </div>
+        </div>
+
+        <div>
+            <div>ул. Первомайская, д.1, офис для всех</div>
+            <div>(с) Инклюзивные решения 2025</div>
+        </div>
+    </body>
 </html>
