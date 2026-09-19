@@ -681,6 +681,147 @@ footer {
   80% { clip-path: inset(10% 0 70% 0); transform: translate(-2px, -1px); }
 }
 
+/* ===== EVGENY THEOREM SHOWCASE ===== */
+.et-teaser {
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  padding: 0.45rem 1.1rem 0.45rem 0.5rem;
+  margin-bottom: 1.1rem;
+  background: rgba(16, 16, 40, 0.55);
+  border: 1px solid rgba(192, 64, 255, 0.35);
+  border-radius: 100px;
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--text-secondary); text-decoration: none;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(10px);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.et-teaser b {
+  padding: 0.22rem 0.65rem; border-radius: 100px;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  color: #0a0a1a; font-weight: 700; letter-spacing: 0.12em;
+}
+.et-teaser em { font-style: normal; color: var(--text-primary); }
+.et-teaser:hover {
+  border-color: var(--cyan); color: var(--text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 0 40px rgba(0,240,255,0.15), 0 0 80px rgba(192,64,255,0.1);
+}
+
+.et-showcase {
+  position: relative; width: 100%; max-width: 1040px;
+  margin: 4.5rem auto 0; text-align: left; min-width: 0;
+  scroll-margin-top: 6rem;
+}
+.et-card {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 2.5rem; align-items: center;
+  padding: 2.8rem;
+  background:
+    radial-gradient(600px circle at var(--mouse-x, 30%) var(--mouse-y, 20%), rgba(0,240,255,0.08), transparent 55%),
+    linear-gradient(135deg, rgba(16,16,40,0.82), rgba(20,12,44,0.82));
+  border: 1px solid transparent;
+  border-radius: 24px;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 30px 90px rgba(0,0,0,0.5), 0 0 80px rgba(0,240,255,0.06), 0 0 120px rgba(192,64,255,0.05);
+}
+.et-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: 24px; padding: 1px;
+  background: linear-gradient(135deg, rgba(0,240,255,0.7), rgba(68,136,255,0.25) 40%, rgba(192,64,255,0.7));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+.et-visual, .et-body { min-width: 0; }
+.et-visual { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.et-gasket { width: 100%; max-width: 380px; height: auto; overflow: visible; filter: drop-shadow(0 0 28px rgba(0,240,255,0.18)); }
+.et-gasket-fill { animation: etBreathe 6s ease-in-out infinite; }
+.et-ring { transform-box: fill-box; transform-origin: center; }
+.et-ring-a { animation: etSpin 28s linear infinite; }
+.et-ring-b { animation: etSpin 46s linear infinite reverse; }
+.et-core-glow { animation: etPulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes etSpin { to { transform: rotate(360deg); } }
+@keyframes etBreathe { 0%, 100% { fill-opacity: 0.12; } 50% { fill-opacity: 0.24; } }
+@keyframes etPulse { 0%, 100% { transform: scale(0.85); opacity: 0.7; } 50% { transform: scale(1.25); opacity: 1; } }
+.et-visual-cap {
+  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted); text-align: center;
+}
+.et-visual-cap span { color: var(--cyan); }
+
+.et-label {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--violet); margin-bottom: 0.9rem;
+}
+.et-label::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--violet); box-shadow: 0 0 12px var(--violet);
+  animation: pulseNav 2s ease-in-out infinite;
+}
+.et-title {
+  font-size: clamp(2rem, 4.4vw, 3.3rem); font-weight: 900;
+  line-height: 1.05; letter-spacing: -0.035em; margin-bottom: 0.9rem;
+  background: linear-gradient(135deg, #fff 0%, #c0c0ff 35%, var(--cyan) 70%, var(--violet) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.et-lead { font-size: 1rem; line-height: 1.75; color: var(--text-secondary); margin-bottom: 1.4rem; }
+.et-lead strong { color: var(--text-primary); font-weight: 600; }
+.et-formula {
+  padding: 1.05rem 1.3rem; margin-bottom: 1.4rem;
+  background: rgba(0, 240, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.18); border-left: 3px solid var(--cyan);
+  border-radius: 12px;
+  font-family: var(--font-mono); font-size: clamp(0.85rem, 1.9vw, 1.12rem);
+  color: var(--text-primary); overflow-x: auto; white-space: nowrap;
+  text-shadow: 0 0 22px rgba(0,240,255,0.3);
+}
+.et-formula sup, .et-formula sub { font-size: 0.68em; line-height: 0; }
+.et-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; margin-bottom: 1.3rem; }
+.et-stat {
+  padding: 0.85rem 0.7rem; text-align: center;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border-subtle); border-radius: 12px;
+  transition: all 0.3s ease;
+}
+.et-stat:hover { border-color: rgba(0,240,255,0.3); background: rgba(0,240,255,0.05); transform: translateY(-2px); }
+.et-stat-value {
+  display: block; font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+  color: var(--green); text-shadow: 0 0 18px rgba(0,255,136,0.35); margin-bottom: 0.3rem;
+}
+.et-stat-label { display: block; font-size: 0.62rem; line-height: 1.4; color: var(--text-muted); letter-spacing: 0.04em; }
+.et-scope { font-size: 0.78rem; line-height: 1.65; color: var(--text-muted); margin-bottom: 1.5rem; }
+.et-scope b { color: var(--amber); font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.08em; }
+.et-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.et-btn {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  padding: 0.9rem 1.6rem; border-radius: 12px;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600;
+  color: var(--text-primary); text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.et-btn::after { content: '→'; transition: transform 0.3s ease; }
+.et-btn:hover { transform: translateY(-3px); border-color: var(--cyan); }
+.et-btn:hover::after { transform: translateX(5px); }
+.et-btn-primary {
+  background: linear-gradient(135deg, rgba(0,240,255,0.16), rgba(192,64,255,0.16));
+  border-color: rgba(0, 240, 255, 0.4);
+}
+.et-btn-primary:hover { box-shadow: 0 0 50px rgba(0,240,255,0.18), 0 0 100px rgba(192,64,255,0.12); }
+@media (max-width: 900px) {
+  .et-card { grid-template-columns: minmax(0, 1fr); padding: 2rem 1.5rem; gap: 1.8rem; }
+  .et-gasket { max-width: 300px; }
+  .et-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .et-showcase { margin-top: 3rem; }
+  .et-teaser { font-size: 0.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .et-gasket-fill, .et-ring, .et-core-glow, .et-label::before { animation: none; }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .nav-links { display: none; }
@@ -722,6 +863,7 @@ footer {
 </nav>
 
 <section class="hero" id="lab">
+  <a href="#theorem" class="et-teaser" title="Jump to the Evgeny Theorem"><b>NEW</b><span><em>Evgeny Theorem</em> — I<sub>m</sub>(π/2) → −8/9</span></a>
   <div class="hero-badge">Research Platform — Est. 2026</div>
   <h1>
     <span class="line1 glitch-text" data-text="Deterministic Execution.&#10;Invariant Systems.">Deterministic Execution.<br>Invariant Systems.</span>
@@ -750,6 +892,54 @@ footer {
   </div>
 
   <a href="matrix.html" class="matrix-link">Open Interactive Verification Matrix</a>
+
+  <div class="et-showcase reveal" id="theorem">
+    <div class="et-card" id="et-card">
+      <div class="et-visual">
+        <svg class="et-gasket" viewBox="0 0 400 350" role="img" aria-label="Sierpiński gasket SG(5) with SU(2) bundle ring and invariant core">
+        <defs>
+          <linearGradient id="etGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#00f0ff"/>
+            <stop offset="55%" stop-color="#4488ff"/>
+            <stop offset="100%" stop-color="#c040ff"/>
+          </linearGradient>
+          <radialGradient id="etCore" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+            <stop offset="35%" stop-color="#00f0ff" stop-opacity="0.75"/>
+            <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <path class="et-gasket-fill" d="M200.0 14.0L194.2 24.1L205.8 24.1ZM194.2 24.1L188.4 34.1L200.0 34.1ZM205.8 24.1L200.0 34.1L211.6 34.1ZM188.4 34.1L182.6 44.2L194.2 44.2ZM182.6 44.2L176.8 54.2L188.4 54.2ZM194.2 44.2L188.4 54.2L200.0 54.2ZM211.6 34.1L205.8 44.2L217.4 44.2ZM205.8 44.2L200.0 54.2L211.6 54.2ZM217.4 44.2L211.6 54.2L223.2 54.2ZM176.8 54.2L170.9 64.3L182.6 64.3ZM170.9 64.3L165.1 74.4L176.8 74.4ZM182.6 64.3L176.8 74.4L188.4 74.4ZM165.1 74.4L159.3 84.4L170.9 84.4ZM159.3 84.4L153.5 94.5L165.1 94.5ZM170.9 84.4L165.1 94.5L176.8 94.5ZM188.4 74.4L182.6 84.4L194.2 84.4ZM182.6 84.4L176.8 94.5L188.4 94.5ZM194.2 84.4L188.4 94.5L200.0 94.5ZM223.2 54.2L217.4 64.3L229.1 64.3ZM217.4 64.3L211.6 74.4L223.2 74.4ZM229.1 64.3L223.2 74.4L234.9 74.4ZM211.6 74.4L205.8 84.4L217.4 84.4ZM205.8 84.4L200.0 94.5L211.6 94.5ZM217.4 84.4L211.6 94.5L223.2 94.5ZM234.9 74.4L229.1 84.4L240.7 84.4ZM229.1 84.4L223.2 94.5L234.9 94.5ZM240.7 84.4L234.9 94.5L246.5 94.5ZM153.5 94.5L147.7 104.6L159.3 104.6ZM147.7 104.6L141.9 114.6L153.5 114.6ZM159.3 104.6L153.5 114.6L165.1 114.6ZM141.9 114.6L136.1 124.7L147.7 124.7ZM136.1 124.7L130.2 134.8L141.9 134.8ZM147.7 124.7L141.9 134.8L153.5 134.8ZM165.1 114.6L159.3 124.7L170.9 124.7ZM159.3 124.7L153.5 134.8L165.1 134.8ZM170.9 124.7L165.1 134.8L176.8 134.8ZM130.2 134.8L124.4 144.8L136.1 144.8ZM124.4 144.8L118.6 154.9L130.2 154.9ZM136.1 144.8L130.2 154.9L141.9 154.9ZM118.6 154.9L112.8 164.9L124.4 164.9ZM112.8 164.9L107.0 175.0L118.6 175.0ZM124.4 164.9L118.6 175.0L130.2 175.0ZM141.9 154.9L136.1 164.9L147.7 164.9ZM136.1 164.9L130.2 175.0L141.9 175.0ZM147.7 164.9L141.9 175.0L153.5 175.0ZM176.8 134.8L170.9 144.8L182.6 144.8ZM170.9 144.8L165.1 154.9L176.8 154.9ZM182.6 144.8L176.8 154.9L188.4 154.9ZM165.1 154.9L159.3 164.9L170.9 164.9ZM159.3 164.9L153.5 175.0L165.1 175.0ZM170.9 164.9L165.1 175.0L176.8 175.0ZM188.4 154.9L182.6 164.9L194.2 164.9ZM182.6 164.9L176.8 175.0L188.4 175.0ZM194.2 164.9L188.4 175.0L200.0 175.0ZM246.5 94.5L240.7 104.6L252.3 104.6ZM240.7 104.6L234.9 114.6L246.5 114.6ZM252.3 104.6L246.5 114.6L258.1 114.6ZM234.9 114.6L229.1 124.7L240.7 124.7ZM229.1 124.7L223.2 134.8L234.9 134.8ZM240.7 124.7L234.9 134.8L246.5 134.8ZM258.1 114.6L252.3 124.7L263.9 124.7ZM252.3 124.7L246.5 134.8L258.1 134.8ZM263.9 124.7L258.1 134.8L269.8 134.8ZM223.2 134.8L217.4 144.8L229.1 144.8ZM217.4 144.8L211.6 154.9L223.2 154.9ZM229.1 144.8L223.2 154.9L234.9 154.9ZM211.6 154.9L205.8 164.9L217.4 164.9ZM205.8 164.9L200.0 175.0L211.6 175.0ZM217.4 164.9L211.6 175.0L223.2 175.0ZM234.9 154.9L229.1 164.9L240.7 164.9ZM229.1 164.9L223.2 175.0L234.9 175.0ZM240.7 164.9L234.9 175.0L246.5 175.0ZM269.8 134.8L263.9 144.8L275.6 144.8ZM263.9 144.8L258.1 154.9L269.8 154.9ZM275.6 144.8L269.8 154.9L281.4 154.9ZM258.1 154.9L252.3 164.9L263.9 164.9ZM252.3 164.9L246.5 175.0L258.1 175.0ZM263.9 164.9L258.1 175.0L269.8 175.0ZM281.4 154.9L275.6 164.9L287.2 164.9ZM275.6 164.9L269.8 175.0L281.4 175.0ZM287.2 164.9L281.4 175.0L293.0 175.0ZM107.0 175.0L101.2 185.1L112.8 185.1ZM101.2 185.1L95.4 195.1L107.0 195.1ZM112.8 185.1L107.0 195.1L118.6 195.1ZM95.4 195.1L89.6 205.2L101.2 205.2ZM89.6 205.2L83.8 215.2L95.4 215.2ZM101.2 205.2L95.4 215.2L107.0 215.2ZM118.6 195.1L112.8 205.2L124.4 205.2ZM112.8 205.2L107.0 215.2L118.6 215.2ZM124.4 205.2L118.6 215.2L130.2 215.2ZM83.8 215.2L77.9 225.3L89.6 225.3ZM77.9 225.3L72.1 235.4L83.8 235.4ZM89.6 225.3L83.8 235.4L95.4 235.4ZM72.1 235.4L66.3 245.4L77.9 245.4ZM66.3 245.4L60.5 255.5L72.1 255.5ZM77.9 245.4L72.1 255.5L83.8 255.5ZM95.4 235.4L89.6 245.4L101.2 245.4ZM89.6 245.4L83.8 255.5L95.4 255.5ZM101.2 245.4L95.4 255.5L107.0 255.5ZM130.2 215.2L124.4 225.3L136.1 225.3ZM124.4 225.3L118.6 235.4L130.2 235.4ZM136.1 225.3L130.2 235.4L141.9 235.4ZM118.6 235.4L112.8 245.4L124.4 245.4ZM112.8 245.4L107.0 255.5L118.6 255.5ZM124.4 245.4L118.6 255.5L130.2 255.5ZM141.9 235.4L136.1 245.4L147.7 245.4ZM136.1 245.4L130.2 255.5L141.9 255.5ZM147.7 245.4L141.9 255.5L153.5 255.5ZM60.5 255.5L54.7 265.6L66.3 265.6ZM54.7 265.6L48.9 275.6L60.5 275.6ZM66.3 265.6L60.5 275.6L72.1 275.6ZM48.9 275.6L43.1 285.7L54.7 285.7ZM43.1 285.7L37.2 295.8L48.9 295.8ZM54.7 285.7L48.9 295.8L60.5 295.8ZM72.1 275.6L66.3 285.7L77.9 285.7ZM66.3 285.7L60.5 295.8L72.1 295.8ZM77.9 285.7L72.1 295.8L83.8 295.8ZM37.2 295.8L31.4 305.8L43.1 305.8ZM31.4 305.8L25.6 315.9L37.2 315.9ZM43.1 305.8L37.2 315.9L48.9 315.9ZM25.6 315.9L19.8 325.9L31.4 325.9ZM19.8 325.9L14.0 336.0L25.6 336.0ZM31.4 325.9L25.6 336.0L37.2 336.0ZM48.9 315.9L43.1 325.9L54.7 325.9ZM43.1 325.9L37.2 336.0L48.9 336.0ZM54.7 325.9L48.9 336.0L60.5 336.0ZM83.8 295.8L77.9 305.8L89.6 305.8ZM77.9 305.8L72.1 315.9L83.8 315.9ZM89.6 305.8L83.8 315.9L95.4 315.9ZM72.1 315.9L66.3 325.9L77.9 325.9ZM66.3 325.9L60.5 336.0L72.1 336.0ZM77.9 325.9L72.1 336.0L83.8 336.0ZM95.4 315.9L89.6 325.9L101.2 325.9ZM89.6 325.9L83.8 336.0L95.4 336.0ZM101.2 325.9L95.4 336.0L107.0 336.0ZM153.5 255.5L147.7 265.6L159.3 265.6ZM147.7 265.6L141.9 275.6L153.5 275.6ZM159.3 265.6L153.5 275.6L165.1 275.6ZM141.9 275.6L136.1 285.7L147.7 285.7ZM136.1 285.7L130.2 295.8L141.9 295.8ZM147.7 285.7L141.9 295.8L153.5 295.8ZM165.1 275.6L159.3 285.7L170.9 285.7ZM159.3 285.7L153.5 295.8L165.1 295.8ZM170.9 285.7L165.1 295.8L176.8 295.8ZM130.2 295.8L124.4 305.8L136.1 305.8ZM124.4 305.8L118.6 315.9L130.2 315.9ZM136.1 305.8L130.2 315.9L141.9 315.9ZM118.6 315.9L112.8 325.9L124.4 325.9ZM112.8 325.9L107.0 336.0L118.6 336.0ZM124.4 325.9L118.6 336.0L130.2 336.0ZM141.9 315.9L136.1 325.9L147.7 325.9ZM136.1 325.9L130.2 336.0L141.9 336.0ZM147.7 325.9L141.9 336.0L153.5 336.0ZM176.8 295.8L170.9 305.8L182.6 305.8ZM170.9 305.8L165.1 315.9L176.8 315.9ZM182.6 305.8L176.8 315.9L188.4 315.9ZM165.1 315.9L159.3 325.9L170.9 325.9ZM159.3 325.9L153.5 336.0L165.1 336.0ZM170.9 325.9L165.1 336.0L176.8 336.0ZM188.4 315.9L182.6 325.9L194.2 325.9ZM182.6 325.9L176.8 336.0L188.4 336.0ZM194.2 325.9L188.4 336.0L200.0 336.0ZM293.0 175.0L287.2 185.1L298.8 185.1ZM287.2 185.1L281.4 195.1L293.0 195.1ZM298.8 185.1L293.0 195.1L304.6 195.1ZM281.4 195.1L275.6 205.2L287.2 205.2ZM275.6 205.2L269.8 215.2L281.4 215.2ZM287.2 205.2L281.4 215.2L293.0 215.2ZM304.6 195.1L298.8 205.2L310.4 205.2ZM298.8 205.2L293.0 215.2L304.6 215.2ZM310.4 205.2L304.6 215.2L316.2 215.2ZM269.8 215.2L263.9 225.3L275.6 225.3ZM263.9 225.3L258.1 235.4L269.8 235.4ZM275.6 225.3L269.8 235.4L281.4 235.4ZM258.1 235.4L252.3 245.4L263.9 245.4ZM252.3 245.4L246.5 255.5L258.1 255.5ZM263.9 245.4L258.1 255.5L269.8 255.5ZM281.4 235.4L275.6 245.4L287.2 245.4ZM275.6 245.4L269.8 255.5L281.4 255.5ZM287.2 245.4L281.4 255.5L293.0 255.5ZM316.2 215.2L310.4 225.3L322.1 225.3ZM310.4 225.3L304.6 235.4L316.2 235.4ZM322.1 225.3L316.2 235.4L327.9 235.4ZM304.6 235.4L298.8 245.4L310.4 245.4ZM298.8 245.4L293.0 255.5L304.6 255.5ZM310.4 245.4L304.6 255.5L316.2 255.5ZM327.9 235.4L322.1 245.4L333.7 245.4ZM322.1 245.4L316.2 255.5L327.9 255.5ZM333.7 245.4L327.9 255.5L339.5 255.5ZM246.5 255.5L240.7 265.6L252.3 265.6ZM240.7 265.6L234.9 275.6L246.5 275.6ZM252.3 265.6L246.5 275.6L258.1 275.6ZM234.9 275.6L229.1 285.7L240.7 285.7ZM229.1 285.7L223.2 295.8L234.9 295.8ZM240.7 285.7L234.9 295.8L246.5 295.8ZM258.1 275.6L252.3 285.7L263.9 285.7ZM252.3 285.7L246.5 295.8L258.1 295.8ZM263.9 285.7L258.1 295.8L269.8 295.8ZM223.2 295.8L217.4 305.8L229.1 305.8ZM217.4 305.8L211.6 315.9L223.2 315.9ZM229.1 305.8L223.2 315.9L234.9 315.9ZM211.6 315.9L205.8 325.9L217.4 325.9ZM205.8 325.9L200.0 336.0L211.6 336.0ZM217.4 325.9L211.6 336.0L223.2 336.0ZM234.9 315.9L229.1 325.9L240.7 325.9ZM229.1 325.9L223.2 336.0L234.9 336.0ZM240.7 325.9L234.9 336.0L246.5 336.0ZM269.8 295.8L263.9 305.8L275.6 305.8ZM263.9 305.8L258.1 315.9L269.8 315.9ZM275.6 305.8L269.8 315.9L281.4 315.9ZM258.1 315.9L252.3 325.9L263.9 325.9ZM252.3 325.9L246.5 336.0L258.1 336.0ZM263.9 325.9L258.1 336.0L269.8 336.0ZM281.4 315.9L275.6 325.9L287.2 325.9ZM275.6 325.9L269.8 336.0L281.4 336.0ZM287.2 325.9L281.4 336.0L293.0 336.0ZM339.5 255.5L333.7 265.6L345.3 265.6ZM333.7 265.6L327.9 275.6L339.5 275.6ZM345.3 265.6L339.5 275.6L351.1 275.6ZM327.9 275.6L322.1 285.7L333.7 285.7ZM322.1 285.7L316.2 295.8L327.9 295.8ZM333.7 285.7L327.9 295.8L339.5 295.8ZM351.1 275.6L345.3 285.7L356.9 285.7ZM345.3 285.7L339.5 295.8L351.1 295.8ZM356.9 285.7L351.1 295.8L362.8 295.8ZM316.2 295.8L310.4 305.8L322.1 305.8ZM310.4 305.8L304.6 315.9L316.2 315.9ZM322.1 305.8L316.2 315.9L327.9 315.9ZM304.6 315.9L298.8 325.9L310.4 325.9ZM298.8 325.9L293.0 336.0L304.6 336.0ZM310.4 325.9L304.6 336.0L316.2 336.0ZM327.9 315.9L322.1 325.9L333.7 325.9ZM322.1 325.9L316.2 336.0L327.9 336.0ZM333.7 325.9L327.9 336.0L339.5 336.0ZM362.8 295.8L356.9 305.8L368.6 305.8ZM356.9 305.8L351.1 315.9L362.8 315.9ZM368.6 305.8L362.8 315.9L374.4 315.9ZM351.1 315.9L345.3 325.9L356.9 325.9ZM345.3 325.9L339.5 336.0L351.1 336.0ZM356.9 325.9L351.1 336.0L362.8 336.0ZM374.4 315.9L368.6 325.9L380.2 325.9ZM368.6 325.9L362.8 336.0L374.4 336.0ZM380.2 325.9L374.4 336.0L386.0 336.0Z" fill="url(#etGrad)" fill-opacity="0.16" stroke="url(#etGrad)" stroke-width="0.9" stroke-linejoin="round"/>
+        <ellipse class="et-ring et-ring-a" cx="200" cy="228" rx="150" ry="46" fill="none" stroke="#c040ff" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 7"/>
+        <ellipse class="et-ring et-ring-b" cx="200" cy="228" rx="112" ry="120" fill="none" stroke="#00f0ff" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="2 9"/>
+        <circle class="et-core-glow" cx="200" cy="228" r="34" fill="url(#etCore)"/>
+        <circle cx="200" cy="228" r="4.5" fill="#ffffff"/>
+      </svg>
+        <div class="et-visual-cap">SG(m) · SU(2) bundle · <span>invariant core</span></div>
+      </div>
+      <div class="et-body">
+        <div class="et-label">Featured Result — Sierpiński Gasket · SU(2) · 2026</div>
+        <h2 class="et-title">Evgeny Theorem</h2>
+        <p class="et-lead">
+          An exact closed-form identity for the <strong>fourth spectral moment</strong> of a
+          <strong>noncommutative SU(2) connection</strong> on the Sierpiński gasket — gauge-invariant,
+          evaluated in O(1), and reproducible by anyone.
+        </p>
+        <div class="et-formula">Δ<sub>m</sub>(H<sup>4</sup>, θ) = −16 · (3<sup>m−1</sup> + 1) · sin<sup>2</sup>(θ/2)</div>
+        <div class="et-stats">
+          <div class="et-stat"><span class="et-stat-value">−8/9</span><span class="et-stat-label">Exact limit of I<sub>m</sub>(π/2)</span></div>
+          <div class="et-stat"><span class="et-stat-value">≤ 10⁻¹¹</span><span class="et-stat-label">Held-out closed-form agreement</span></div>
+          <div class="et-stat"><span class="et-stat-value">6 / 6</span><span class="et-stat-label">Acceptance criteria passed</span></div>
+          <div class="et-stat"><span class="et-stat-value">8×10⁻¹⁵</span><span class="et-stat-label">Gauge-invariance residual</span></div>
+        </div>
+        <p class="et-scope"><b>SCOPE</b> &nbsp;Exact for the fourth spectral moment only, verified for refinement levels m = 1…7 and held-out (m, θ) pairs. Not a complexity-theory result.</p>
+        <div class="et-actions">
+          <a class="et-btn et-btn-primary" href="https://rft-sirm.github.io/Evgeny-Theorem/" target="_blank" rel="noopener">Open Interactive Visualization</a>
+          <a class="et-btn" href="https://github.com/RFT-SIRM/Evgeny-Theorem" target="_blank" rel="noopener">Repository</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section class="section" id="evidence">
@@ -1682,6 +1872,17 @@ document.querySelectorAll('.card, .evidence-card').forEach(card => {
 });
 
 
+
+// ===== EVGENY THEOREM CARD — MOUSE GLOW =====
+(function () {
+  const etCard = document.getElementById('et-card');
+  if (!etCard) return;
+  etCard.addEventListener('mousemove', (e) => {
+    const r = etCard.getBoundingClientRect();
+    etCard.style.setProperty('--mouse-x', ((e.clientX - r.left) / r.width) * 100 + '%');
+    etCard.style.setProperty('--mouse-y', ((e.clientY - r.top) / r.height) * 100 + '%');
+  });
+})();
 </script>
 </body>
 </html>
