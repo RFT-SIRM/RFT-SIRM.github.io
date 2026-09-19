@@ -426,6 +426,19 @@ footer {
     0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px
   );
 }
+
+/* Evgeny Theorem row */
+.system-row[data-system="evgeny"] .system-name { white-space: nowrap; }
+.system-row[data-system="evgeny"] .system-cell {
+  background: linear-gradient(90deg, rgba(224,64,251,0.10), var(--bg-primary) 75%);
+  box-shadow: inset 3px 0 0 var(--violet);
+}
+.et-new {
+  display: inline-block; margin-left: 0.35rem; padding: 0.08rem 0.4rem; border-radius: 100px;
+  background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #0a0a1a;
+  font-family: var(--font-mono); font-size: 0.5rem; font-weight: 700; letter-spacing: 0.1em; vertical-align: middle;
+}
+.detail-left sub, .detail-left sup { font-size: 0.7em; line-height: 0; }
 </style>
 </head>
 <body>
@@ -438,6 +451,7 @@ footer {
   <a href="index.html" class="logo"><span>RFT-SIRM</span></a>
   <ul class="nav-links">
     <li><a href="index.html">Home</a></li>
+    <li><a href="index.html#theorem">Theorem</a></li>
     <li><a href="index.html#evidence">Evidence</a></li>
     <li><a href="index.html#cases">Cases</a></li>
     <li><a href="https://github.com/RFT-SIRM" target="_blank">GitHub</a></li>
@@ -850,6 +864,72 @@ footer {
             <li>Audit: Independent security review, 14 findings</li>
             <li>Status: All findings addressed, RC v1.0</li>
             <li>Limitation: Audit report under NDA; summary only public</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evgeny Theorem -->
+    <div class="matrix-row system-row" data-system="evgeny">
+      <div class="system-cell">
+        <div class="system-name">Evgeny Theorem <span class="et-new">NEW</span></div>
+        <div class="system-desc">Spectral invariant · SU(2) gasket</div>
+      </div>
+      <div class="verif-cell" data-layer="static" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="tests" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">pytest + CI</div>
+      </div>
+      <div class="verif-cell" data-layer="fuzz" data-status="na">
+        <div class="status-icon status-na">—</div>
+        <div class="verif-label">N/A</div>
+      </div>
+      <div class="verif-cell" data-layer="diff" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">Direct ↔ closed form</div>
+      </div>
+      <div class="verif-cell" data-layer="model" data-status="active">
+        <div class="status-icon status-active">✓</div>
+        <div class="verif-label">6/6 criteria</div>
+      </div>
+      <div class="verif-cell" data-layer="formal" data-status="planned">
+        <div class="status-icon status-planned">◯</div>
+        <div class="verif-label">Lean 4 (scaffold)</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detail-evgeny">
+      <div class="detail-grid">
+        <div class="detail-left">
+          <h3>Evgeny Theorem — Gauge-Invariant Fourth Spectral Moment</h3>
+          <div class="detail-system">Noncommutative SU(2) connection on the Sierpiński gasket</div>
+          <p>
+            Closed-form identity for the trace defect between a non-commuting SU(2) configuration and its
+            commuting control: Δ<sub>m</sub>(H⁴, θ) = −16·(3<sup>m−1</sup> + 1)·sin²(θ/2).
+            The normalized invariant converges to −8/9 at θ = π/2.
+          </p>
+          <p>
+            <strong>Key result:</strong> closed form matches direct computation at every tested (m, θ),
+            m = 1…7 (dim(H) up to 6564). Held-out deviation ≤ 3×10⁻¹¹, gauge residual 8×10⁻¹⁵,
+            6/6 acceptance criteria passed.
+          </p>
+          <div class="detail-meta">
+            <span class="meta-tag cyan">Python / pytest</span>
+            <span class="meta-tag green">Held-out validated</span>
+            <span class="meta-tag amber">Formal proof planned</span>
+          </div>
+        </div>
+        <div class="detail-right">
+          <h4>Evidence &amp; Links</h4>
+          <ul class="evidence-list">
+            <li><a href="https://github.com/RFT-SIRM/Evgeny-Theorem" target="_blank" rel="noopener">Repository → Evgeny-Theorem</a></li>
+            <li><a href="https://rft-sirm.github.io/Evgeny-Theorem/" target="_blank" rel="noopener">Live visualization → rft-sirm.github.io/Evgeny-Theorem</a></li>
+            <li>Method: direct trace computation of both operators vs closed form; held-out parameters; random gauge transformation</li>
+            <li>Result: 6/6 acceptance criteria, gauge residual 8×10⁻¹⁵</li>
+            <li>Reproduce: pytest tests/ -m "not slow" -v</li>
+            <li>Limitation: fourth moment only; operator-level identity not yet machine-checked (Lean file is a scaffold); not a complexity-theory result</li>
           </ul>
         </div>
       </div>

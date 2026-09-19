@@ -822,6 +822,60 @@ footer {
   .et-gasket-fill, .et-ring, .et-core-glow, .et-label::before { animation: none; }
 }
 
+/* ===== EVGENY THEOREM — SITE-WIDE INTEGRATION ===== */
+.et-wide { grid-column: 1 / -1; }
+.et-tag {
+  display: inline-block; margin-left: 0.7rem; padding: 0.15rem 0.6rem;
+  border-radius: 100px; vertical-align: middle;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  color: #0a0a1a; font-family: var(--font-mono); font-size: 0.58rem;
+  font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.evidence-card.et-evidence {
+  border-color: rgba(192, 64, 255, 0.28);
+  background: linear-gradient(135deg, rgba(16,16,40,0.8), rgba(24,14,50,0.8));
+  box-shadow: 0 0 60px rgba(192,64,255,0.06), 0 0 90px rgba(0,240,255,0.04);
+}
+.evidence-card.et-evidence::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+}
+.evidence-card.et-evidence .evidence-meta { columns: 2; column-gap: 3rem; }
+.evidence-card.et-evidence .evidence-meta > div { break-inside: avoid; }
+.evidence-meta sub, .evidence-meta sup, .card sub, .card sup, .claim-item sub, .claim-item sup, .timeline-item sub, .timeline-item sup { font-size: 0.7em; line-height: 0; }
+.card.et-case {
+  border-color: rgba(192, 64, 255, 0.28);
+  background: linear-gradient(135deg, rgba(16,16,40,0.8), rgba(24,14,50,0.8));
+  box-shadow: 0 0 60px rgba(192,64,255,0.06), 0 0 90px rgba(0,240,255,0.04);
+}
+.card.et-case p { max-width: 900px; }
+.metric-card.et-strip {
+  display: block; text-decoration: none; color: inherit; text-align: left;
+  padding: 1.8rem 2.2rem;
+  border-color: rgba(192, 64, 255, 0.28);
+  background: linear-gradient(135deg, rgba(16,16,40,0.8), rgba(24,14,50,0.8));
+}
+.metric-card.et-strip::before { opacity: 1; background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.et-strip-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.3rem; }
+.et-strip-label { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--violet); }
+.et-strip-cta { font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan); transition: transform 0.3s ease; }
+.metric-card.et-strip:hover .et-strip-cta { transform: translateX(6px); }
+.et-strip-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem; }
+.et-strip-value {
+  display: block; font-family: var(--font-mono); font-size: 2rem; font-weight: 700; line-height: 1.1; margin-bottom: 0.45rem;
+  background: linear-gradient(135deg, var(--cyan), var(--blue), var(--violet));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.et-strip-cap { display: block; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; color: var(--text-muted); }
+@media (max-width: 900px) {
+  .evidence-card.et-evidence .evidence-meta { columns: 1; }
+  .et-strip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .metric-card.et-strip { padding: 1.5rem 1.4rem; }
+  .et-strip-head { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .nav-links { display: none; }
@@ -853,6 +907,7 @@ footer {
 <nav id="navbar">
   <a href="#" class="nav-logo" id="nav-logo" onclick="return false;"><span>RFT-SIRM</span></a>
   <ul class="nav-links">
+    <li><a href="#theorem" data-scroll>Theorem</a></li>
     <li><a href="#pipeline" data-scroll>Pipeline</a></li>
     <li><a href="#evidence" data-scroll>Evidence</a></li>
     <li><a href="#claims" data-scroll>Claims</a></li>
@@ -928,11 +983,11 @@ footer {
         <div class="et-formula">Δ<sub>m</sub>(H<sup>4</sup>, θ) = −16 · (3<sup>m−1</sup> + 1) · sin<sup>2</sup>(θ/2)</div>
         <div class="et-stats">
           <div class="et-stat"><span class="et-stat-value">−8/9</span><span class="et-stat-label">Exact limit of I<sub>m</sub>(π/2)</span></div>
-          <div class="et-stat"><span class="et-stat-value">≤ 10⁻¹¹</span><span class="et-stat-label">Held-out closed-form agreement</span></div>
+          <div class="et-stat"><span class="et-stat-value">≤ 3×10⁻¹¹</span><span class="et-stat-label">Max held-out deviation from closed form</span></div>
           <div class="et-stat"><span class="et-stat-value">6 / 6</span><span class="et-stat-label">Acceptance criteria passed</span></div>
           <div class="et-stat"><span class="et-stat-value">8×10⁻¹⁵</span><span class="et-stat-label">Gauge-invariance residual</span></div>
         </div>
-        <p class="et-scope"><b>SCOPE</b> &nbsp;Exact for the fourth spectral moment only, verified for refinement levels m = 1…7 and held-out (m, θ) pairs. Not a complexity-theory result.</p>
+        <p class="et-scope"><b>SCOPE</b> &nbsp;Fourth moment only. Closed form verified numerically for m = 1…7 and held-out (m, θ) pairs; a machine-checked operator-level proof is planned. Not a complexity-theory result.</p>
         <div class="et-actions">
           <a class="et-btn et-btn-primary" href="https://rft-sirm.github.io/Evgeny-Theorem/" target="_blank" rel="noopener">Open Interactive Visualization</a>
           <a class="et-btn" href="https://github.com/RFT-SIRM/Evgeny-Theorem" target="_blank" rel="noopener">Repository</a>
@@ -1069,6 +1124,29 @@ footer {
           <a href="https://github.com/RFT-SIRM/Rift-Network" target="_blank" rel="noopener" class="blue" style="font-size:0.72rem;padding:0.35rem 0.8rem;border-radius:6px;font-family:var(--font-mono);text-decoration:none;display:inline-block;background:rgba(68,136,255,0.06);color:var(--blue);border:1px solid rgba(68,136,255,0.12);">Open Protocol →</a>
         </div>
       </div>
+      <div class="evidence-card et-wide et-evidence reveal" data-delay="600">
+        <div class="evidence-header">
+          <div class="evidence-value">−8/9</div>
+          <span class="status-badge status-validated">VALIDATED</span>
+        </div>
+        <h4 style="font-size:1.05rem;margin-bottom:0.6rem;font-weight:600;"><a href="https://github.com/RFT-SIRM/Evgeny-Theorem" class="evidence-title-link" target="_blank" rel="noopener">Evgeny Theorem — Gauge-Invariant Fourth Spectral Moment</a><span class="et-tag">New</span></h4>
+        <div class="evidence-meta">
+          <div><strong>Repository:</strong> Evgeny-Theorem</div>
+          <div><strong>Object:</strong> SU(2) connection on Sierpiński gasket SG(m), H = C<sup>n</sup> ⊗ C²</div>
+          <div><strong>Identity:</strong> Δ<sub>m</sub>(H⁴, θ) = −16·(3<sup>m−1</sup> + 1)·sin²(θ/2)</div>
+          <div><strong>Harness:</strong> pytest suite (~60 checks), GitHub Actions on Python 3.11 / 3.12</div>
+          <div><strong>Coverage:</strong> m = 1…7 (dim(H) up to 6564), θ-grid, held-out (m, θ) pairs</div>
+          <div><strong>Limit:</strong> I<sub>m</sub>(π/2) → −8/9, geometric rate 1/3 (Aitken residual 3.3×10⁻⁶)</div>
+          <div><strong>Result:</strong> held-out deviation ≤ 3×10⁻¹¹ · gauge residual 8×10⁻¹⁵ · 6/6 acceptance criteria</div>
+          <div><strong>Limitation:</strong> Fourth moment only; numerically verified on tested (m, θ), operator-level machine-checked proof not yet complete (Lean scaffold); not a complexity-theory result</div>
+        </div>
+        <div class="evidence-actions">
+          <a href="https://github.com/RFT-SIRM/Evgeny-Theorem" target="_blank" rel="noopener" class="cyan">View Repository →</a>
+          <a href="https://rft-sirm.github.io/Evgeny-Theorem/" target="_blank" rel="noopener" class="blue">Live Visualization →</a>
+          <a href="https://github.com/RFT-SIRM/Evgeny-Theorem/actions" target="_blank" rel="noopener" class="cyan">View CI →</a>
+          <a href="https://github.com/RFT-SIRM/Evgeny-Theorem/blob/main/THEOREM.md" target="_blank" rel="noopener" class="blue">THEOREM.md →</a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1104,6 +1182,16 @@ footer {
         <span style="font-size:0.92rem;">Aave V4 Hub model: 0 invariant violations in 184K ops</span>
         <a href="https://github.com/RFT-SIRM/aave-v4-hub-model-review" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">aave-v4-hub-model →</a>
       </div>
+      <div class="claim-item reveal" data-status="validated" data-delay="125">
+        <span class="status-badge status-validated">VALIDATED</span>
+        <span style="font-size:0.92rem;">Evgeny Theorem: Δ<sub>m</sub>(H⁴, θ) = −16(3<sup>m−1</sup> + 1)·sin²(θ/2) matches direct computation on all tested (m, θ), m = 1…7</span>
+        <a href="https://github.com/RFT-SIRM/Evgeny-Theorem" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Evgeny-Theorem →</a>
+      </div>
+      <div class="claim-item reveal" data-status="validated" data-delay="140">
+        <span class="status-badge status-validated">VALIDATED</span>
+        <span style="font-size:0.92rem;">Fourth spectral moment of the SU(2) gasket operator is gauge-invariant (random SU(2) transformation, level 3: residual 8×10⁻¹⁵)</span>
+        <a href="https://github.com/RFT-SIRM/Evgeny-Theorem/blob/main/VERIFICATION.md" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Evgeny-Theorem →</a>
+      </div>
       <div class="claim-item reveal" data-status="experimental" data-delay="150">
         <span class="status-badge status-experimental">EXPERIMENTAL</span>
         <span style="font-size:0.92rem;">Conflict-aware scheduler reduces lock churn in Agave banking_stage</span>
@@ -1128,6 +1216,11 @@ footer {
         <span class="status-badge status-planned">PLANNED</span>
         <span style="font-size:0.92rem;">Coq development for core state transition properties</span>
         <a href="https://github.com/RFT-SIRM/UltraCore-RFT" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">UltraCore-RFT →</a>
+      </div>
+      <div class="claim-item reveal" data-status="planned" data-delay="400">
+        <span class="status-badge status-planned">PLANNED</span>
+        <span style="font-size:0.92rem;">Machine-checked Lean 4 proof of the operator-level Evgeny identity for all m, θ (formalization scaffold exists)</span>
+        <a href="https://github.com/RFT-SIRM/Evgeny-Theorem/tree/main/formalization" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-align:right;text-decoration:none;">Lean scaffold →</a>
       </div>
     </div>
   </div>
@@ -1195,6 +1288,15 @@ footer {
           <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">Conceptual · No artifacts</span>
         </div>
       </div>
+      <div class="card et-wide et-case reveal" data-delay="600">
+        <div class="card-icon" style="color:var(--violet);">Δ</div>
+        <h3>Evgeny Theorem — Gauge-Invariant Spectral Invariant<span class="et-tag">New</span></h3>
+        <p>An exact closed-form identity for the fourth spectral moment of a noncommutative SU(2) connection on the Sierpiński gasket: Δ<sub>m</sub>(H⁴, θ) = −16(3<sup>m−1</sup> + 1)·sin²(θ/2). Verified against direct computation for m = 1…7 and held-out parameters, gauge-invariant to 8×10⁻¹⁵, with I<sub>m</sub>(π/2) → −8/9. Evaluates in O(1) — no operator construction required.</p>
+        <div class="card-meta">
+          <span class="status-badge status-research">Mathematics</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">m = 1…7 · 6/6 criteria</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1227,6 +1329,11 @@ footer {
         <h4>Aave V4 Hub Model Review</h4>
         <p>Deterministic fuzzing of Aave V4 Hub invariant model. 184K operations, 0 violations. Complementary to Certora formal verification. Published methodology.</p>
       </div>
+      <div class="timeline-item completed reveal" data-delay="350">
+        <div class="timeline-date">2026 Q3 — Mathematics <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
+        <h4>Evgeny Theorem</h4>
+        <p>Closed-form fourth spectral moment of a noncommutative SU(2) connection on the Sierpiński gasket, verified across refinement levels m = 1…7, held-out parameters and random gauge transformations. Six-criterion acceptance protocol passed. Open repository and interactive visualization.</p>
+      </div>
       <div class="timeline-item completed reveal" data-delay="400">
         <div class="timeline-date">2026 Q4 — Scheduler <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,136,0.2);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">COMPLETED</span></div>
         <h4>Conflict-Aware Scheduling</h4>
@@ -1240,7 +1347,7 @@ footer {
       <div class="timeline-item planned reveal" data-delay="600">
         <div class="timeline-date">2026 Q4 — Formal <span style="background:rgba(255,255,255,0.02);color:var(--text-muted);border:1px solid var(--border-subtle);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">PLANNED</span></div>
         <h4>TLA+ Specifications</h4>
-        <p>Machine-checked proofs of critical invariants in TLA+. Coq development for core state transition properties. Target: fully verified execution path.</p>
+        <p>Machine-checked proofs of critical invariants in TLA+. Coq development for core state transition properties. Lean 4 proof of the Evgeny Theorem operator-level identity. Target: fully verified execution path.</p>
       </div>
       <div class="timeline-item planned reveal" data-delay="700">
         <div class="timeline-date">2026 Q4 — Scale <span style="background:rgba(255,255,255,0.02);color:var(--text-muted);border:1px solid var(--border-subtle);padding:0.15rem 0.6rem;border-radius:6px;font-size:0.65rem;">PLANNED</span></div>
@@ -1283,6 +1390,18 @@ footer {
         <div class="metric-value" data-count="5">5</div>
         <div class="metric-label">Verification Layers</div>
       </div>
+      <a href="https://rft-sirm.github.io/Evgeny-Theorem/" target="_blank" rel="noopener" class="metric-card et-strip et-wide reveal" data-delay="600">
+        <div class="et-strip-head">
+          <span class="et-strip-label">Mathematical Result — Evgeny Theorem</span>
+          <span class="et-strip-cta">Open visualization →</span>
+        </div>
+        <div class="et-strip-grid">
+          <div><span class="et-strip-value">−8/9</span><span class="et-strip-cap">Exact limit at θ = π/2</span></div>
+          <div><span class="et-strip-value">6 / 6</span><span class="et-strip-cap">Acceptance criteria passed</span></div>
+          <div><span class="et-strip-value">m = 1…7</span><span class="et-strip-cap">Levels verified (dim ≤ 6564)</span></div>
+          <div><span class="et-strip-value">8×10⁻¹⁵</span><span class="et-strip-cap">Gauge-invariance residual</span></div>
+        </div>
+      </a>
     </div>
   </div>
 </section>
@@ -1315,6 +1434,20 @@ footer {
             <span class="contact-link-value">UltraCore-RFT</span>
           </div>
         </a>
+        <a href="https://github.com/RFT-SIRM/Evgeny-Theorem" class="contact-link" target="_blank" rel="noopener">
+          <div class="contact-link-icon">Δ</div>
+          <div class="contact-link-text">
+            <span class="contact-link-label">Evgeny Theorem</span>
+            <span class="contact-link-value">Evgeny-Theorem</span>
+          </div>
+        </a>
+        <a href="https://rft-sirm.github.io/Evgeny-Theorem/" class="contact-link" target="_blank" rel="noopener">
+          <div class="contact-link-icon">△</div>
+          <div class="contact-link-text">
+            <span class="contact-link-label">Theorem Visualization</span>
+            <span class="contact-link-value">rft-sirm.github.io/Evgeny-Theorem</span>
+          </div>
+        </a>
         <a href="https://rft-sirm.github.io" class="contact-link">
           <div class="contact-link-icon">🌐</div>
           <div class="contact-link-text">
@@ -1335,6 +1468,7 @@ footer {
     <div class="footer-right">
       <a href="https://github.com/RFT-SIRM" target="_blank" rel="noopener">GitHub</a>
       <a href="matrix.html">Verification Matrix</a>
+      <a href="https://github.com/RFT-SIRM/Evgeny-Theorem" target="_blank" rel="noopener">Evgeny Theorem</a>
       <a href="#lab" data-scroll>Top</a>
     </div>
   </div>
