@@ -259,6 +259,18 @@ nav.scrolled {
   transform: translateX(6px);
 }
 
+/* ===== FEATURED DISSERTATION ===== */
+.dissertation-feature{position:relative;z-index:10;padding:2.5rem 2rem 1rem}
+.dissertation-panel{max-width:1200px;margin:0 auto;position:relative;overflow:hidden;border:1px solid rgba(0,255,136,.42);border-radius:22px;padding:clamp(1.6rem,4vw,3rem);background:radial-gradient(ellipse at 0% 0%,rgba(0,255,136,.16),transparent 58%),linear-gradient(125deg,rgba(5,48,39,.96),rgba(9,25,35,.97) 58%,rgba(19,27,47,.96));box-shadow:0 0 38px rgba(0,255,136,.08),inset 0 1px 0 rgba(255,255,255,.05)}
+.dissertation-panel:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#8dffbe,#00ff88,#16b879);box-shadow:0 0 22px rgba(0,255,136,.35)}
+.dissertation-kicker{display:inline-flex;align-items:center;gap:.6rem;padding:.42rem .8rem;border:1px solid rgba(0,255,136,.3);border-radius:999px;color:#8dffbe;background:rgba(0,255,136,.08);font:600 .68rem var(--font-mono);letter-spacing:.13em;text-transform:uppercase}
+.dissertation-panel h2{margin:1rem 0 .8rem;font-size:clamp(1.8rem,4vw,3.1rem);line-height:1.12;color:#effff6;letter-spacing:-.035em}
+.dissertation-panel p{max-width:850px;color:#c1dfd0;line-height:1.85;font-size:1rem}
+.dissertation-actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:1.5rem}
+.dissertation-actions a{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.1rem;border-radius:10px;border:1px solid rgba(141,255,190,.32);background:rgba(0,255,136,.09);color:#baffd7;font:600 .75rem var(--font-mono);text-decoration:none;transition:transform .2s,border-color .2s,background .2s}
+.dissertation-actions a:hover{transform:translateY(-2px);border-color:#8dffbe;background:rgba(0,255,136,.16);color:#fff}
+.dissertation-note{margin-top:1rem!important;font-size:.78rem!important;color:#92b7a5!important}
+@media(max-width:640px){.dissertation-feature{padding:1.5rem 1rem .5rem}.dissertation-actions a{width:100%;justify-content:center}}
 /* ===== SECTIONS ===== */
 .section { position: relative; padding: 8rem 2rem; z-index: 10; }
 .container { max-width: 1200px; margin: 0 auto; }
@@ -908,6 +920,7 @@ footer {
   <a href="#" class="nav-logo" id="nav-logo" onclick="return false;"><span>RFT-SIRM</span></a>
   <ul class="nav-links">
     <li><a href="#theorem" data-scroll>Theorem</a></li>
+    <li><a href="#dissertation" data-scroll>Dissertation</a></li>
     <li><a href="#pipeline" data-scroll>Pipeline</a></li>
     <li><a href="#evidence" data-scroll>Evidence</a></li>
     <li><a href="#claims" data-scroll>Claims</a></li>
@@ -995,6 +1008,20 @@ footer {
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="dissertation-feature" id="dissertation" aria-labelledby="dissertation-title">
+  <div class="dissertation-panel reveal">
+    <span class="dissertation-kicker">Featured research · dissertation</span>
+    <h2 id="dissertation-title">Recursive Graph Operators, Spectral Trace Defects, and Higher-Moment Recurrence</h2>
+    <p>The central research document brings together the fourth-moment result, higher-moment finite certificates, reproducible numerical checks, and the open questions that remain. Read it as a research dissertation/monograph—not as a claim that a complete physical Theory of Everything has already been proved.</p>
+    <div class="dissertation-actions">
+      <a href="https://github.com/RFT-SIRM/Evgeny-s-Theory-of-Everything/blob/main/DISSERTATION.md">↗ Read the dissertation</a>
+      <a href="https://github.com/RFT-SIRM/Evgeny-Theorem/blob/main/THEOREM.md">↗ Inspect the fourth-moment theorem</a>
+      <a href="https://github.com/RFT-SIRM/Evgeny-s-Theory-of-Everything">↗ Open the research repository</a>
+    </div>
+    <p class="dissertation-note">Evidence boundary: the Lean-formalized fourth-moment statement, finite higher-moment certificates, numerical checks, and open conjectures are labelled separately. Engineering and blockchain implementations are presented in their own sections.</p>
   </div>
 </section>
 
