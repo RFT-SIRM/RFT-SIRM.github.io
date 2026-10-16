@@ -4,6 +4,10 @@
 
 Public research platform for the **RFT-SIRM Laboratory** — Deterministic Invariant Systems Research.
 
+> **Featured scientific work:** [Recursive Graph Operators, Spectral Trace Defects, and Higher-Moment Recurrence — research dissertation](https://github.com/RFT-SIRM/Evgeny-s-Theory-of-Everything/blob/main/DISSERTATION.md). This document separates the fourth-moment theorem, finite higher-moment evidence, numerical checks, and unresolved conjectures. The title “Theory of Everything” denotes an ongoing research programme, not a claim that a complete physical theory has been proved.
+
+[![Read the dissertation](https://img.shields.io/badge/READ%20THE%20DISSERTATION-Research%20synthesis-16a765?style=for-the-badge)](https://github.com/RFT-SIRM/Evgeny-s-Theory-of-Everything/blob/main/DISSERTATION.md)
+
 **Dedicated research routes:** [UltraCore-RFT interactive portal](https://rft-sirm.github.io/ultracore/) · [UltraCore-RFT source repository](https://github.com/RFT-SIRM/UltraCore-RFT).
 
 ---
