@@ -4,6 +4,8 @@
 
 Public research platform for the **RFT-SIRM Laboratory** — Deterministic Invariant Systems Research.
 
+**Dedicated research routes:** [UltraCore-RFT interactive portal](https://rft-sirm.github.io/ultracore/) · [UltraCore-RFT source repository](https://github.com/RFT-SIRM/UltraCore-RFT).
+
 ---
 
 ## What is this?
